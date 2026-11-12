@@ -4,10 +4,166 @@
 @source "../node_modules/streamdown/dist/*.js";
 @source "../node_modules/@streamdown/code/dist/*.js";
 
+:root {
+  font-family: "Arial", "Helvetica Neue", sans-serif;
+  color: #f2f0e9;
+  background: #10110f;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --urban-ink: #10110f;
+  --urban-panel: #181a17;
+  --urban-line: rgba(242, 240, 233, 0.13);
+  --urban-lime: #d3ff52;
+  --urban-muted: #9c9e95;
+}
+
 html,
 body,
 #root {
   width: 100%;
+  min-height: 100%;
   height: 100%;
   margin: 0;
+}
+
+body {
+  background-color: var(--urban-ink);
+  background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+button, textarea, input { font: inherit; }
+::selection { color: var(--urban-ink); background: var(--urban-lime); }
+
+/* Editorial dark-mode identity for the Society's AI-powered front door. */
+#root > div {
+  min-height: 100vh;
+  height: 100vh;
+  color: #f2f0e9;
+  background: radial-gradient(ellipse at 50% -30%, rgba(211,255,82,.11), transparent 55%), rgba(16,17,15,.96) !important;
+}
+
+#root header {
+  padding: 21px clamp(18px, 5vw, 72px) !important;
+  background: rgba(16,17,15,.88) !important;
+  border-bottom: 1px solid var(--urban-line) !important;
+  backdrop-filter: blur(18px);
+}
+
+#root header > div {
+  max-width: 1440px !important;
+  min-height: 38px;
+}
+
+#root header h1 {
+  position: relative;
+  font-size: 0 !important;
+  line-height: 1 !important;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+#root header h1 span { display: none; }
+#root header h1::before {
+  content: "INTRO 2 SOCIETY";
+  color: #f2f0e9;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+#root header h1::after {
+  content: "CULTURE · COMMUNITY · CREATIVITY";
+  display: block;
+  margin-top: 7px;
+  color: var(--urban-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .18em;
+}
+
+#root header button {
+  border-radius: 999px !important;
+  border-color: var(--urban-line) !important;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+#root header button:hover { transform: translateY(-1px); border-color: var(--urban-lime) !important; }
+#root header > div > div:last-child { gap: 10px !important; }
+
+#root .flex-1.overflow-y-auto {
+  scrollbar-color: #484b40 transparent;
+  background: linear-gradient(180deg, rgba(16,17,15,.25), rgba(16,17,15,.78));
+}
+#root .flex-1.overflow-y-auto > div {
+  max-width: 980px !important;
+  padding-top: clamp(42px, 9vh, 105px) !important;
+  padding-bottom: 44px !important;
+}
+
+/* Give the empty state an editorial, art-directed presence. */
+#root .flex-1.overflow-y-auto > div > *:first-child {
+  border-color: transparent;
+}
+#root .flex-1.overflow-y-auto h1,
+#root .flex-1.overflow-y-auto h2,
+#root .flex-1.overflow-y-auto h3 {
+  letter-spacing: -.045em;
+}
+#root .flex-1.overflow-y-auto button {
+  border-radius: 999px !important;
+  border-color: var(--urban-line) !important;
+  background: rgba(255,255,255,.035) !important;
+  color: #e7e7dd !important;
+  transition: border-color .18s ease, color .18s ease, transform .18s ease;
+}
+#root .flex-1.overflow-y-auto button:hover {
+  color: var(--urban-lime) !important;
+  border-color: var(--urban-lime) !important;
+  transform: translateY(-2px);
+}
+
+#root .border-t.border-kumo-line.bg-kumo-base {
+  border-color: var(--urban-line) !important;
+  background: rgba(16,17,15,.92) !important;
+  backdrop-filter: blur(18px);
+}
+#root .border-t.border-kumo-line.bg-kumo-base form { max-width: 980px !important; padding-top: 18px !important; }
+#root .border-t.border-kumo-line.bg-kumo-base form > div.flex.items-end {
+  min-height: 62px;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(242,240,233,.2) !important;
+  border-radius: 18px !important;
+  background: #1b1d19 !important;
+  box-shadow: 0 16px 50px rgba(0,0,0,.24) !important;
+}
+#root textarea { color: #f2f0e9 !important; }
+#root textarea::placeholder { color: #83867b !important; }
+#root .border-t.border-kumo-line.bg-kumo-base form button[aria-label="Send message"] {
+  color: #10110f !important;
+  background: var(--urban-lime) !important;
+  border-color: var(--urban-lime) !important;
+}
+#root .border-t.border-kumo-line.bg-kumo-base > div:last-child { opacity: .58; filter: grayscale(1); }
+
+#root .rounded-2xl.bg-kumo-contrast {
+  color: #10110f !important;
+  background: var(--urban-lime) !important;
+}
+#root .rounded-2xl.bg-kumo-base { background: #1b1d19 !important; }
+#root pre { border-radius: 12px; }
+
+@media (max-width: 700px) {
+  #root header { padding: 16px !important; }
+  #root header > div { align-items: flex-start; }
+  #root header > div > div:last-child { gap: 6px !important; }
+  #root header h1::before { font-size: 12px; }
+  #root header h1::after { font-size: 7px; letter-spacing: .1em; }
+  #root header > div > div:last-child > div:first-child,
+  #root header > div > div:last-child > div:nth-child(2) { display: none; }
+  #root .flex-1.overflow-y-auto > div { padding: 48px 18px 30px !important; }
+  #root .border-t.border-kumo-line.bg-kumo-base form { padding: 14px 16px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
