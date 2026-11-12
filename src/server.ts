@@ -44,6 +44,14 @@ export class ChatAgent extends AIChatAgent<Env> {
   }
 
   @callable()
+  async addMemoryServer(userId: string, baseUrl = "https://memory.mcpgenerator.com") {
+    const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
+    const memoryUrl = new URL(`/${userId}/sse`, `${normalizedBaseUrl}/`).toString();
+
+    return await this.addMcpServer("puliczek-mcp-memory", memoryUrl);
+  }
+
+  @callable()
   async removeServer(serverId: string) {
     await this.removeMcpServer(serverId);
   }
