@@ -23,15 +23,14 @@
       "new_sqlite_classes": ["ChatAgent"],
       "tag": "v1"
     }
+  ],
+  "browser": {
+    "binding": "BROWSER",
+    "remote": true
+  },
+  "worker_loaders": [
+    {
+      "binding": "LOADER"
+    }
   ]
 }
-
-"browser": {
-  "binding": "BROWSER",
-  "remote": true
-},
-"worker_loaders": [
-  {
-    "binding": "LOADER"
-  }
-]
