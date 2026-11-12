@@ -6,7 +6,10 @@ export function buildMemoryWorkerUrl(
   baseUrl = DEFAULT_MEMORY_WORKER_BASE_URL
 ) {
   const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
-  return new URL(`/${userId}/sse`, `${normalizedBaseUrl}/`).toString();
+  return new URL(
+    `/${encodeURIComponent(userId)}/sse`,
+    `${normalizedBaseUrl}/`
+  ).toString();
 }
 
 export async function registerMemoryWorker(
