@@ -357,7 +357,8 @@ function Chat() {
     clearHistory,
     addToolApprovalResponse,
     stop,
-    status
+    status,
+    error
   } = useAgentChat({
     agent,
     experimental_throttle: 100,
@@ -704,8 +705,7 @@ function Chat() {
               contents={
                 <div className="flex flex-wrap justify-center gap-2">
                   {[
-                    "What's the weather in Paris?",
-                    "What timezone am I in?",
+                    "Find a business opportunity to research",
                     "Calculate 5000 * 3",
                     "Remind me in 5 minutes to take a break"
                   ].map((prompt) => (
@@ -842,6 +842,12 @@ function Chat() {
             );
           })}
 
+          {error && (
+            <div role="alert" className="text-sm text-kumo-danger">
+              The AI response failed. Please try again. If the problem persists,
+              ask the operator to check the Worker logs and AI configuration.
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </div>

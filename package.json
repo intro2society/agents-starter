@@ -17,6 +17,7 @@
     "types": "wrangler types env.d.ts",
     "format": "oxfmt --write .",
     "lint": "oxlint src/",
+    "test:chat": "node --experimental-strip-types --test tests/chatError.test.ts",
     "test:memory": "node --experimental-strip-types --test tests/memoryWorker.test.ts",
     "check": "oxfmt --check . && oxlint src/ && tsc"
   },

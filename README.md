@@ -6,7 +6,7 @@
 
 A starter template for building AI chat agents on Cloudflare, powered by the [Agents SDK](https://developers.cloudflare.com/agents/).
 
-Uses Workers AI (no API key required), with tools for weather, timezone detection, calculations with approval, task scheduling, and vision (image input).
+Uses Workers AI (no API key required), with business research, calculations with approval, and task scheduling.
 
 ## Quick start
 
@@ -27,13 +27,24 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) to see your agent in action.
 
+### Troubleshooting chat
+
+Chat uses the `AI` Workers AI binding and a `ChatAgent` Durable Object in
+`wrangler.jsonc`; browser research also uses `BROWSER` and `LOADER`. Local
+development requires an authenticated Cloudflare remote proxy. If a chat
+response fails, check the deployed Worker's logs for `Chat response failed`
+and any HTTP status, and verify the binding, model availability, account
+permissions, and Workers AI quota. Do not share tokens or conversation contents
+when reporting an error. For further diagnosis, provide the visible error,
+whether the app is local or deployed, and relevant sanitized Worker logs.
+
+The configured Qwen coder model is text-oriented; image input requires a
+vision-capable model that also supports the tools used by this agent.
+
 Try these prompts to see the different features:
 
-- **"What's the weather in Paris?"** — server-side tool (runs automatically)
-- **"What timezone am I in?"** — client-side tool (browser provides the answer)
 - **"Calculate 5000 \* 3"** — approval tool (asks you before running)
 - **"Remind me in 5 minutes to take a break"** — scheduling
-- **Drop an image and ask "What's in this image?"** — vision (image understanding)
 
 ## Project structure
 
@@ -68,7 +79,7 @@ Edit the `system` string in `server.ts` to give your agent a different personali
 
 ### Replace the demo tools with real ones
 
-The starter ships with demo tools (`getWeather` returns random data, `calculate` does basic arithmetic). Replace them with real implementations:
+The starter includes a demo `calculate` tool. Replace it or add other tools with real implementations:
 
 ```ts
 // In server.ts, replace a demo tool with a real API call:
