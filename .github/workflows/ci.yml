@@ -36,5 +36,8 @@ jobs:
       - name: Run project checks
         run: npm run check
 
+      - name: Run memory worker tests
+        run: npm run test:memory
+
       - name: Build application
         run: npx vite build
