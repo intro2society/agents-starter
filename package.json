@@ -17,6 +17,7 @@
     "types": "wrangler types env.d.ts",
     "format": "oxfmt --write .",
     "lint": "oxlint src/",
+    "test:memory": "node --experimental-strip-types --test tests/memoryWorker.test.ts",
     "check": "oxfmt --check . && oxlint src/ && tsc"
   },
   "dependencies": {
@@ -53,6 +54,6 @@
     "esbuild@0.28.1": true,
     "workerd@1.20260721.1": true,
     "sharp@0.34.5": true,
-    "fsevents@2.3.3": true
+    "fsevents@3.0.0": true
   }
 }
