@@ -11,6 +11,7 @@ import {
   tool
 } from "ai";
 import { z } from "zod";
+import { chatErrorResponse, chatErrorText } from "./chatError";
 import { handleFeatureApiRequest } from "./featureApi";
 import {
   DEFAULT_MEMORY_SERVER_NAME,
@@ -89,6 +90,14 @@ export class ChatAgent extends AIChatAgent<Env> {
   }
 
   async onChatMessage(_onFinish: unknown, options?: OnChatMessageOptions) {
+    try {
+      return await this.respondToChat(options);
+    } catch (error) {
+      return chatErrorResponse(error);
+    }
+  }
+
+  async respondToChat(options?: OnChatMessageOptions) {
     const workersai = createWorkersAI({ binding: this.env.AI });
     const browserTools = createBrowserTools({
       ctx: this.ctx,
@@ -296,9 +305,10 @@ Use the scheduling tool when the user requests a scheduled task.`,
         })
       },
       stopWhen: stepCountIs(20),
-      abortSignal: options?.abortSignal
+      abortSignal: options?.abortSignal,
+      onError: () => {}
     });
-    return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({ onError: chatErrorText });
   }
 
   async executeTask(description: string, _task: Schedule<string>) {
