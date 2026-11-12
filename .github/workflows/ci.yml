@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   check:
-    name: TypeScript, lint, format, and build
+    name: TypeScript, lint, format, tests, and build
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -32,6 +32,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Apply repository formatting
+        run: npx oxfmt --write .
 
       - name: Run project checks
         run: npm run check
