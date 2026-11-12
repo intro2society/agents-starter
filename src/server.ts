@@ -1,4 +1,3 @@
-
 import { createWorkersAI } from "workers-ai-provider";
 import { callable, routeAgentRequest, type Schedule } from "agents";
 import { getSchedulePrompt, scheduleSchema } from "agents/schedule";
@@ -12,6 +11,11 @@ import {
   tool
 } from "ai";
 import { z } from "zod";
+import {
+  DEFAULT_MEMORY_SERVER_NAME,
+  DEFAULT_MEMORY_WORKER_BASE_URL,
+  registerMemoryWorker
+} from "./memoryWorker";
 
 export class ChatAgent extends AIChatAgent<Env> {
   maxPersistedMessages = 100;
@@ -44,11 +48,16 @@ export class ChatAgent extends AIChatAgent<Env> {
   }
 
   @callable()
-  async addMemoryServer(userId: string, baseUrl = "https://memory.mcpgenerator.com") {
-    const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
-    const memoryUrl = new URL(`/${userId}/sse`, `${normalizedBaseUrl}/`).toString();
-
-    return await this.addMcpServer("puliczek-mcp-memory", memoryUrl);
+  async addMemoryServer(
+    userId: string,
+    baseUrl = DEFAULT_MEMORY_WORKER_BASE_URL
+  ) {
+    return await registerMemoryWorker(
+      this,
+      userId,
+      baseUrl,
+      DEFAULT_MEMORY_SERVER_NAME
+    );
   }
 
   @callable()
