@@ -3,6 +3,8 @@
 // Runtime types generated with workerd@1.20260721.1 2026-06-11 nodejs_compat
 interface __BaseEnv_Env {
 	AI: Ai;
+	BROWSER: Parameters<typeof import("agents/browser/ai").createBrowserTools>[0]["browser"];
+	LOADER: WorkerLoader;
 	ChatAgent: DurableObjectNamespace<import("./src/server").ChatAgent>;
 }
 declare namespace Cloudflare {

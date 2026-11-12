@@ -98,7 +98,7 @@ export function FeatureTools() {
         </button>
         {error && <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-red-200">Error: {error}</p>}
         {review && <article className="whitespace-pre-wrap rounded-xl border border-white/15 bg-white/5 p-4">{review}</article>}
-        {imageUrl && <img className="max-h-[70vh] rounded-xl border border-white/15" src={imageUrl} alt={`Generated image: ${prompt}`} />}
+        {imageUrl && <img className="max-h-[70vh] rounded-xl border border-white/15" src={imageUrl} alt={prompt} />}
       </section>
     </main>
   );
