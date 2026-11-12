@@ -14,7 +14,8 @@
   --urban-ink: #10110f;
   --urban-panel: #181a17;
   --urban-line: rgba(242, 240, 233, 0.13);
-  --urban-lime: #d3ff52;
+  --urban-purple: #6f4af7;
+  --urban-purple-soft: rgba(111, 74, 247, 0.18);
   --urban-muted: #9c9e95;
 }
 
@@ -34,14 +35,14 @@ body {
 }
 
 button, textarea, input { font: inherit; }
-::selection { color: var(--urban-ink); background: var(--urban-lime); }
+::selection { color: var(--urban-ink); background: var(--urban-purple); }
 
 /* Editorial dark-mode identity for the Society's AI-powered front door. */
 #root > div {
   min-height: 100vh;
   height: 100vh;
   color: #f2f0e9;
-  background: radial-gradient(ellipse at 50% -30%, rgba(211,255,82,.11), transparent 55%), rgba(16,17,15,.96) !important;
+  background: radial-gradient(ellipse at 50% -30%, rgba(111,74,247,.16), transparent 55%), rgba(16,17,15,.96) !important;
 }
 
 #root header {
@@ -87,7 +88,7 @@ button, textarea, input { font: inherit; }
   border-color: var(--urban-line) !important;
   transition: transform .18s ease, border-color .18s ease, background .18s ease;
 }
-#root header button:hover { transform: translateY(-1px); border-color: var(--urban-lime) !important; }
+#root header button:hover { transform: translateY(-1px); border-color: var(--urban-purple) !important; }
 #root header > div > div:last-child { gap: 10px !important; }
 
 #root .flex-1.overflow-y-auto {
@@ -117,8 +118,8 @@ button, textarea, input { font: inherit; }
   transition: border-color .18s ease, color .18s ease, transform .18s ease;
 }
 #root .flex-1.overflow-y-auto button:hover {
-  color: var(--urban-lime) !important;
-  border-color: var(--urban-lime) !important;
+  color: var(--urban-purple) !important;
+  border-color: var(--urban-purple) !important;
   transform: translateY(-2px);
 }
 
@@ -139,15 +140,16 @@ button, textarea, input { font: inherit; }
 #root textarea { color: #f2f0e9 !important; }
 #root textarea::placeholder { color: #83867b !important; }
 #root .border-t.border-kumo-line.bg-kumo-base form button[aria-label="Send message"] {
-  color: #10110f !important;
-  background: var(--urban-lime) !important;
-  border-color: var(--urban-lime) !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #7a5cff 0%, #5f3def 100%) !important;
+  border-color: #7a5cff !important;
+  box-shadow: 0 14px 26px rgba(111,74,247,.32);
 }
 #root .border-t.border-kumo-line.bg-kumo-base > div:last-child { opacity: .58; filter: grayscale(1); }
 
 #root .rounded-2xl.bg-kumo-contrast {
-  color: #10110f !important;
-  background: var(--urban-lime) !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #7a5cff 0%, #5f3def 100%) !important;
 }
 #root .rounded-2xl.bg-kumo-base { background: #1b1d19 !important; }
 #root pre { border-radius: 12px; }
