@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   update:
-    if: github.actor != 'github-actions[bot]' && (github.event_name == 'push' || github.head_ref == 'security/dependency-updates')
+    if: github.actor != 'github-actions[bot]' && (github.event_name == 'push' || startsWith(github.head_ref, 'security/dependency-updates'))
     runs-on: ubuntu-latest
     steps:
       - name: Check out branch
