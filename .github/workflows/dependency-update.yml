@@ -1,4 +1,5 @@
 name: Safe dependency updates
+# This branch is the controlled dependency-maintenance run.
 
 on:
   push:
