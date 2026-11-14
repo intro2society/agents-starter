@@ -1,4 +1,5 @@
 name: Safe dependency updates
+# Branch-scoped maintenance workflow; dependency changes are committed only after checks pass.
 
 on:
   push:
