@@ -18,6 +18,7 @@ concurrency:
 
 jobs:
   check:
+    if: github.head_ref != 'security/dependency-update-pr' || github.actor == 'github-actions[bot]'
     name: TypeScript, lint, format, tests, and build
     runs-on: ubuntu-latest
     steps:
@@ -54,3 +55,52 @@ jobs:
 
       - name: Build application
         run: npx vite build
+
+  dependency_update:
+    if: github.event_name == 'pull_request' && github.head_ref == 'security/dependency-update-pr' && github.actor != 'github-actions[bot]'
+    name: Apply safe dependency updates
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out dependency branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Update dependencies and lockfile
+        run: |
+          npm install --legacy-peer-deps
+          npm update streamdown @hono/node-server katex mermaid --legacy-peer-deps || true
+          npm audit fix --legacy-peer-deps || true
+
+      - name: Format, type-check, test, and build
+        run: |
+          npm run format
+          npm run check
+          npm run test:memory
+          npx vite build
+
+      - name: Report remaining advisories
+        continue-on-error: true
+        run: |
+          npm audit --json > npm-audit-after.json || true
+          node -e 'const r=require("./npm-audit-after.json"); console.log("Remaining audit totals:", JSON.stringify(r.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(r.vulnerabilities ?? {})) console.log(JSON.stringify({name,severity:v.severity,isDirect:v.isDirect,range:v.range,fixAvailable:v.fixAvailable}));'
+
+      - name: Commit updated package files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "No dependency file changes to commit."
+          else
+            git commit -m "security: update vulnerable dependencies"
+            git push origin HEAD:"$GITHUB_HEAD_REF"
+          fi

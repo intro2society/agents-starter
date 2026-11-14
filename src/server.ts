@@ -148,7 +148,6 @@ function createResearchTools(env: Env) {
 
 export class ChatAgent extends AIChatAgent<Env> {
   maxPersistedMessages = 100;
-  chatRecovery = true;
   waitForMcpConnections = true;
 
   onStart() {
