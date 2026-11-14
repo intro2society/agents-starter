@@ -31,6 +31,11 @@ export async function handleFeatureApiRequest(request: Request, env: Env): Promi
     return new Response("Method not allowed", { status: 405, headers: { Allow: "POST" } });
   }
 
+  const contentLength = Number(request.headers.get("Content-Length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > 65_536) {
+    return jsonError("Request body is too large.", 413);
+  }
+
   const body = await readJson(request);
   if (!body) return jsonError("Expected a JSON request body.", 400);
   const ai = env.AI as unknown as WorkersAI;
