@@ -1,0 +1,60 @@
+name: Safe dependency updates
+
+on:
+  push:
+    branches:
+      - security/dependency-updates
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Upgrade audited direct dependencies
+        run: |
+          npm install --save agents@^0.33.0
+          npm install --save-dev oxfmt@^0.78.0
+
+      - name: Apply compatible security fixes
+        run: npm audit fix || true
+
+      - name: Format, type-check, test, and build
+        run: |
+          npm run format
+          npm run check
+          npm run test:memory
+          npx vite build
+
+      - name: Report remaining advisories
+        run: |
+          npm audit --json > npm-audit-after.json || true
+          node -e 'const r=require("./npm-audit-after.json"); console.log("Remaining audit totals:", JSON.stringify(r.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(r.vulnerabilities ?? {})) console.log(JSON.stringify({name,severity:v.severity,isDirect:v.isDirect,range:v.range,fixAvailable:v.fixAvailable}));'
+
+      - name: Commit safe dependency updates
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "No dependency changes were produced."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "security: update vulnerable dependencies"
+          git push
