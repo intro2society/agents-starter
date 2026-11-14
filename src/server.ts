@@ -216,7 +216,33 @@ export class ChatAgent extends AIChatAgent<Env> {
     await this.removeMcpServer(serverId);
   }
 
+  private async consumeChatRateLimit(
+    limit = 20,
+    windowMs = 60_000
+  ): Promise<boolean> {
+    return this.ctx.storage.transaction(async (txn) => {
+      const now = Date.now();
+      const current = await txn.get<{ windowStart: number; count: number }>("chatRateLimit");
+      if (!current || now - current.windowStart >= windowMs) {
+        await txn.put("chatRateLimit", { windowStart: now, count: 1 });
+        return true;
+      }
+      if (current.count >= limit) return false;
+      await txn.put("chatRateLimit", {
+        windowStart: current.windowStart,
+        count: current.count + 1
+      });
+      return true;
+    });
+  }
+
   async onChatMessage(_onFinish: unknown, options?: OnChatMessageOptions) {
+    const allowed = await this.consumeChatRateLimit();
+    if (!allowed) {
+      return new Response("Too many chat messages. Please wait a minute and try again.", {
+        status: 429
+      });
+    }
     const workersai = createWorkersAI({ binding: this.env.AI });
     const researchTools = createResearchTools(this.env);
     const mcpTools = this.mcp.getAITools();
@@ -478,6 +504,24 @@ Use the scheduling tool when the user requests a scheduled task.`,
 
 export default {
   async fetch(request: Request, env: Env) {
+    const url = new URL(request.url);
+    const isWriteOrSocket =
+      request.method === "POST" || request.headers.get("Upgrade") === "websocket";
+    if (isWriteOrSocket) {
+      const origin = request.headers.get("Origin");
+      if (origin && origin !== url.origin) {
+        return new Response("Cross-origin requests are not allowed.", { status: 403 });
+      }
+      try {
+        const clientIp = request.headers.get("cf-connecting-ip") ?? "unknown";
+        const { success } = await env.API_RATE_LIMITER.limit({ key: clientIp });
+        if (!success) {
+          return new Response("Rate limit exceeded. Please try again shortly.", { status: 429 });
+        }
+      } catch {
+        return new Response("Request protection is temporarily unavailable.", { status: 503 });
+      }
+    }
     const featureResponse = await handleFeatureApiRequest(request, env);
     if (featureResponse) return featureResponse;
     return (await routeAgentRequest(request, env)) || new Response("Not found", { status: 404 });
