@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "vite dev",
     "start": "vite dev",
-    "deploy": "vite build && wrangler deploy",
+    "deploy": "vite build && wrangler deploy && if [ -n \"$BRAVE_SEARCH_API_KEY\" ]; then printf '%s' \"$BRAVE_SEARCH_API_KEY\" | wrangler secret put BRAVE_SEARCH_API_KEY; fi",
     "types": "wrangler types env.d.ts",
     "format": "oxfmt --write .",
     "lint": "oxlint src/",
