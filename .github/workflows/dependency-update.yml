@@ -5,19 +5,22 @@ on:
   push:
     branches:
       - security/dependency-updates
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   update:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && (github.event_name == 'push' || github.head_ref == 'security/dependency-updates')
     runs-on: ubuntu-latest
     steps:
       - name: Check out branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
