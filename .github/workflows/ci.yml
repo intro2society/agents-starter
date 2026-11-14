@@ -33,6 +33,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Report dependency advisories
+        continue-on-error: true
+        run: |
+          npm audit --json > npm-audit.json || true
+          if [ -s npm-audit.json ]; then
+            node -e 'const r=require("./npm-audit.json"); console.log("Audit totals:", JSON.stringify(r.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(r.vulnerabilities ?? {})) console.log(JSON.stringify({name,severity:v.severity,isDirect:v.isDirect,range:v.range,fixAvailable:v.fixAvailable,via:(v.via ?? []).map(x=>typeof x==="string"?x:{name:x.name,title:x.title,url:x.url,range:x.range})}));'
+          else
+            echo "No npm audit report was produced."
+          fi
+
       - name: Apply repository formatting
         run: npx oxfmt --write .
 
