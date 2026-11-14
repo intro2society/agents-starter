@@ -76,8 +76,9 @@ jobs:
 
       - name: Update dependencies and lockfile
         run: |
-          npm install
-          npm audit fix || true
+          npm install --legacy-peer-deps
+          npm update streamdown @hono/node-server katex mermaid --legacy-peer-deps || true
+          npm audit fix --legacy-peer-deps || true
 
       - name: Format, type-check, test, and build
         run: |
