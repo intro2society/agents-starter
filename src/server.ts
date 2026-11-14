@@ -89,7 +89,7 @@ function createResearchTools(env: Env) {
           /^172\.(1[6-9]|2[0-9]|3[01])\./.test(host) ||
           host === "::1" ||
           host === "[::1]" ||
-          /^\[?fe80(?::|\:)/i.test(host) ||
+          /^\[?fe80:/i.test(host) ||
           /^\[?(?:fc|fd)[0-9a-f:]*\]?$/i.test(host)
         ) {
           return "Only public HTTPS webpages can be read.";
