@@ -9,7 +9,7 @@ export function isPublicHttpsUrl(value: string): boolean {
     return false;
   }
 
-  const hostname = url.hostname.toLowerCase().replace(/\\.$/, "");
+  const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
   if (
     url.protocol !== "https:" ||
     url.username !== "" ||
@@ -18,10 +18,9 @@ export function isPublicHttpsUrl(value: string): boolean {
     !hostname.includes(".") ||
     hostname === "localhost" ||
     PRIVATE_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix)) ||
-    /^\\d{1,3}(?:\\.\\d{1,3}){3}$/.test(hostname) ||
+    /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname) ||
     hostname.includes(":") ||
-    hostname.startsWith("[") ||
-    hostname === "0.0.0.0"
+    hostname.startsWith("[")
   ) {
     return false;
   }
