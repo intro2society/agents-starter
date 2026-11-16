@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - repair/**
+      - improvements/**
   pull_request:
     branches:
       - main
@@ -52,6 +53,9 @@ jobs:
 
       - name: Run memory worker tests
         run: npm run test:memory
+
+      - name: Run API and URL security tests
+        run: npm run test:feature-api
 
       - name: Build application
         run: npx vite build

@@ -16,8 +16,8 @@ test("builds the default user-scoped MCP SSE URL", () => {
 
 test("normalizes trailing slashes on a custom base URL", () => {
   assert.equal(
-    buildMemoryWorkerUrl("alice", "https://memory.example.test/"),
-    "https://memory.example.test/alice/sse"
+    buildMemoryWorkerUrl("alice", "https://memory.example.com/"),
+    "https://memory.example.com/alice/sse"
   );
 });
 
@@ -44,4 +44,16 @@ test("registers the default server name and user-scoped URL", async () => {
     DEFAULT_MEMORY_SERVER_NAME,
     `${DEFAULT_MEMORY_WORKER_BASE_URL}/alice/sse`
   ]]);
+});
+
+
+test("rejects non-public memory worker endpoints", () => {
+  assert.throws(
+    () => buildMemoryWorkerUrl("alice", "http://localhost:8787"),
+    /public HTTPS/
+  );
+  assert.throws(
+    () => buildMemoryWorkerUrl("alice", "https://127.0.0.1"),
+    /public HTTPS/
+  );
 });

@@ -1,3 +1,5 @@
+import { assertPublicHttpsUrl } from "./urlSecurity.ts";
+
 export const DEFAULT_MEMORY_SERVER_NAME = "puliczek-mcp-memory";
 export const DEFAULT_MEMORY_WORKER_BASE_URL = "https://memory.mcpgenerator.com";
 
@@ -5,7 +7,7 @@ export function buildMemoryWorkerUrl(
   userId: string,
   baseUrl = DEFAULT_MEMORY_WORKER_BASE_URL
 ) {
-  const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
+  const normalizedBaseUrl = assertPublicHttpsUrl(baseUrl).toString().replace(/\/+$/, "");
   return new URL(
     `/${encodeURIComponent(userId)}/sse`,
     `${normalizedBaseUrl}/`

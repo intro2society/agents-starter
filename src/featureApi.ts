@@ -6,12 +6,46 @@ function jsonError(message: string, status: number) {
   return Response.json({ error: message }, { status });
 }
 
-async function readJson(request: Request): Promise<Record<string, unknown> | null> {
+async function readJson(
+  request: Request,
+  maxBytes: number
+): Promise<{ body: Record<string, unknown> | null; tooLarge: boolean }> {
+  const reader = request.body?.getReader();
+  if (!reader) return { body: null, tooLarge: false };
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
   try {
-    const value: unknown = await request.json();
-    return value !== null && typeof value === "object" ? value as Record<string, unknown> : null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        await reader.cancel();
+        return { body: null, tooLarge: true };
+      }
+      chunks.push(value);
+    }
   } catch {
-    return null;
+    return { body: null, tooLarge: false };
+  }
+
+  try {
+    const bytes = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    const value: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return {
+      body: value !== null && typeof value === "object" && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : null,
+      tooLarge: false
+    };
+  } catch {
+    return { body: null, tooLarge: false };
   }
 }
 
@@ -36,13 +70,15 @@ export async function handleFeatureApiRequest(request: Request, env: Env): Promi
     return jsonError("Request body is too large.", 413);
   }
 
-  const body = await readJson(request);
+  const { body, tooLarge } = await readJson(request, 65_536);
+  if (tooLarge) return jsonError("Request body is too large.", 413);
   if (!body) return jsonError("Expected a JSON request body.", 400);
   const ai = env.AI as unknown as WorkersAI;
 
   if (pathname === "/api/code-review") {
     const code = body.code;
-    const language = typeof body.language === "string" ? body.language : "unspecified";
+    const language = typeof body.language === "string" ? body.language.trim() : "unspecified";
+    if (language.length > 80) return jsonError("Language must be 80 characters or fewer.", 400);
     if (typeof code !== "string" || !code.trim()) return jsonError("Provide code to review.", 400);
     if (code.length > 30_000) return jsonError("Code must be 30,000 characters or fewer.", 413);
     try {

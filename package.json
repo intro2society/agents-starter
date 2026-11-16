@@ -18,7 +18,9 @@
     "format": "oxfmt --write .",
     "lint": "oxlint src/",
     "test:memory": "node --experimental-strip-types --test tests/memoryWorker.test.ts",
-    "check": "oxfmt --check . && oxlint src/ && tsc"
+    "check": "oxfmt --check . && oxlint src/ && tsc",
+    "test:feature-api": "node --experimental-strip-types --test tests/featureApi.test.ts tests/urlSecurity.test.ts",
+    "test": "npm run test:memory && npm run test:feature-api"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.0",
