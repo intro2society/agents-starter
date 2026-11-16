@@ -7,7 +7,7 @@ export function buildMemoryWorkerUrl(
   userId: string,
   baseUrl = DEFAULT_MEMORY_WORKER_BASE_URL
 ) {
-  const normalizedBaseUrl = assertPublicHttpsUrl(baseUrl).toString().replace(/\\/+$/, "");
+  const normalizedBaseUrl = assertPublicHttpsUrl(baseUrl).toString().replace(/\/+$/, "");
   return new URL(
     `/${encodeURIComponent(userId)}/sse`,
     `${normalizedBaseUrl}/`
