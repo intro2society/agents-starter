@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - repair/**
+      - improvements/**
   pull_request:
     branches:
       - main
