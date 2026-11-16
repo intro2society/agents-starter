@@ -45,3 +45,15 @@ test("registers the default server name and user-scoped URL", async () => {
     `${DEFAULT_MEMORY_WORKER_BASE_URL}/alice/sse`
   ]]);
 });
+
+
+test("rejects non-public memory worker endpoints", () => {
+  assert.throws(
+    () => buildMemoryWorkerUrl("alice", "http://localhost:8787"),
+    /public HTTPS/
+  );
+  assert.throws(
+    () => buildMemoryWorkerUrl("alice", "https://127.0.0.1"),
+    /public HTTPS/
+  );
+});
