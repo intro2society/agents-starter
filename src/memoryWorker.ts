@@ -1,3 +1,5 @@
+import { assertPublicHttpsUrl } from "./urlSecurity";
+
 export const DEFAULT_MEMORY_SERVER_NAME = "puliczek-mcp-memory";
 export const DEFAULT_MEMORY_WORKER_BASE_URL = "https://memory.mcpgenerator.com";
 
