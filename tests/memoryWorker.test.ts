@@ -16,7 +16,7 @@ test("builds the default user-scoped MCP SSE URL", () => {
 
 test("normalizes trailing slashes on a custom base URL", () => {
   assert.equal(
-    buildMemoryWorkerUrl("alice", "https://memory.example.test/"),
+    buildMemoryWorkerUrl("alice", "https://memory.example.com/"),
     "https://memory.example.test/alice/sse"
   );
 });
