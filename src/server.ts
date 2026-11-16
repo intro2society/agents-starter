@@ -11,6 +11,7 @@ import {
 } from "ai";
 import { z } from "zod";
 import { handleFeatureApiRequest } from "./featureApi";
+import { isPublicHttpsUrl } from "./urlSecurity";
 import {
   DEFAULT_MEMORY_SERVER_NAME,
   DEFAULT_MEMORY_WORKER_BASE_URL,
@@ -72,26 +73,7 @@ function createResearchTools(env: Env) {
         } catch {
           return "Invalid URL.";
         }
-        const host = target.hostname.toLowerCase();
-        if (
-          target.protocol !== "https:" ||
-          target.username ||
-          target.password ||
-          target.port ||
-          host === "localhost" ||
-          host.endsWith(".localhost") ||
-          host.endsWith(".local") ||
-          host.endsWith(".internal") ||
-          /^127\./.test(host) ||
-          /^10\./.test(host) ||
-          /^192\.168\./.test(host) ||
-          /^169\.254\./.test(host) ||
-          /^172\.(1[6-9]|2[0-9]|3[01])\./.test(host) ||
-          host === "::1" ||
-          host === "[::1]" ||
-          /^\[?fe80:/i.test(host) ||
-          /^\[?(?:fc|fd)[0-9a-f:]*\]?$/i.test(host)
-        ) {
+        if (!isPublicHttpsUrl(target.toString())) {
           return "Only public HTTPS webpages can be read.";
         }
 
@@ -202,6 +184,9 @@ export class ChatAgent extends AIChatAgent<Env> {
 
   @callable()
   async addServer(name: string, url: string) {
+    if (!isPublicHttpsUrl(url)) {
+      throw new Error("Only public HTTPS MCP server URLs without credentials or custom ports are allowed.");
+    }
     return await this.addMcpServer(name, url);
   }
 
