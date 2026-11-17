@@ -25,7 +25,7 @@ function extractText(output: unknown): string {
 
 export async function handleFeatureApiRequest(request: Request, env: Env): Promise<Response | null> {
   const { pathname } = new URL(request.url);
-  if (pathname !== "/api/code-review" && pathname !== "/api/image-generation") return null;
+  if (pathname !== "/api/code-review" && pathname !== "/api/image-generation" && pathname !== "/api/probate-search") return null;
 
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: { Allow: "POST" } });
@@ -38,6 +38,57 @@ export async function handleFeatureApiRequest(request: Request, env: Env): Promi
 
   const body = await readJson(request);
   if (!body) return jsonError("Expected a JSON request body.", 400);
+  if (pathname === "/api/probate-search") {
+    const decedent = typeof body.decedent === "string" ? body.decedent.trim() : "";
+    const locality = typeof body.locality === "string" ? body.locality.trim() : "";
+    if (!decedent || !locality) return jsonError("Enter an estate or decedent name and a Virginia county or independent city.", 400);
+    if (decedent.length > 120 || locality.length > 120) return jsonError("Search terms must be 120 characters or fewer.", 413);
+    const apiKey = (env as Env & { BRAVE_SEARCH_API_KEY?: string }).BRAVE_SEARCH_API_KEY;
+    if (!apiKey) return jsonError("Public web search is not configured on this Worker yet. You can still use the official court links and save research entries.", 503);
+
+    const searchUrl = new URL("https://api.search.brave.com/res/v1/web/search");
+    searchUrl.searchParams.set("q", `"${decedent}" probate estate records property "${locality}" Virginia`);
+    searchUrl.searchParams.set("count", "10");
+    searchUrl.searchParams.set("safesearch", "strict");
+    try {
+      const response = await fetch(searchUrl, {
+        headers: { Accept: "application/json", "X-Subscription-Token": apiKey }
+      });
+      if (!response.ok) {
+        console.error("Probate public web search failed:", response.status);
+        return jsonError("The public web search provider is temporarily unavailable.", 502);
+      }
+      const data = await response.json() as {
+        web?: { results?: Array<{ title?: string; url?: string; description?: string; age?: string; page_age?: string }> };
+      };
+      const results = (data.web?.results ?? []).flatMap((item) => {
+        if (!item.url || !item.title) return [];
+        try {
+          const url = new URL(item.url);
+          if (url.protocol !== "https:") return [];
+          const host = url.hostname.toLowerCase();
+          const official = host === "vacourts.gov" || host.endsWith(".vacourts.gov") ||
+            host === "virginia.gov" || host.endsWith(".virginia.gov") || host.endsWith(".gov");
+          return [{
+            title: item.title.slice(0, 240),
+            url: url.toString(),
+            description: (item.description ?? "").slice(0, 700),
+            date: item.age ?? item.page_age ?? null,
+            sourceType: official ? "Government domain — verify the specific record" : "Other public web source — independent verification required"
+          }];
+        } catch {
+          return [];
+        }
+      }).slice(0, 10);
+      return Response.json({ results, searchedAt: new Date().toISOString(), query: { decedent, locality } }, {
+        headers: { "Cache-Control": "no-store" }
+      });
+    } catch (error) {
+      console.error("Probate public web search request failed:", error);
+      return jsonError("The public web search could not be completed. Please try again.", 502);
+    }
+  }
+
   const ai = env.AI as unknown as WorkersAI;
 
   if (pathname === "/api/code-review") {
