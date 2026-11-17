@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 type ProbateLead = {
   id: string;
@@ -78,7 +78,7 @@ export function ProbateSearch() {
     );
   }, [leads, query]);
 
-  function saveLead(event: React.FormEvent<HTMLFormElement>) {
+  function saveLead(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form.decedent.trim() || !form.locality.trim()) return;
     const lead: ProbateLead = {
