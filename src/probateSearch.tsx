@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+type PublicSearchResult = { title: string; url: string; description: string; date: string | null; sourceType: string };
+
 type ProbateLead = {
   id: string;
   decedent: string;
@@ -60,6 +62,10 @@ export function ProbateSearch() {
   const [query, setQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [notice, setNotice] = useState("");
+  const [searchName, setSearchName] = useState("");
+  const [searchLocality, setSearchLocality] = useState("Lynchburg City");
+  const [publicResults, setPublicResults] = useState<PublicSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     try {
@@ -77,6 +83,44 @@ export function ProbateSearch() {
         .some((value) => value.toLowerCase().includes(term))
     );
   }, [leads, query]);
+
+  async function searchPublicRecords(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!searchName.trim() || !searchLocality.trim() || searching) return;
+    setSearching(true);
+    setNotice("");
+    setPublicResults([]);
+    try {
+      const response = await fetch("/api/probate-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decedent: searchName.trim(), locality: searchLocality.trim() })
+      });
+      const data = await response.json() as { error?: string; results?: PublicSearchResult[] };
+      if (!response.ok) throw new Error(data.error || "The public search could not be completed.");
+      setPublicResults(data.results ?? []);
+      if (!data.results?.length) setNotice("No public web results were returned. Try another spelling or use the official court links.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "The public search could not be completed.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function saveSearchResult(result: PublicSearchResult) {
+    const lead: ProbateLead = {
+      ...EMPTY_FORM,
+      id: crypto.randomUUID(),
+      decedent: searchName.trim(),
+      locality: searchLocality.trim(),
+      sourceUrl: result.url,
+      notes: result.description,
+      status: "Needs review",
+      createdAt: new Date().toISOString()
+    };
+    setLeads((current) => [lead, ...current]);
+    setNotice("Search result saved as an unverified research lead.");
+  }
 
   function saveLead(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -144,6 +188,19 @@ export function ProbateSearch() {
               <button onClick={() => setShowForm(true)} className="rounded-full bg-violet-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-400">+ Add a research lead</button>
               <button onClick={exportLeads} className="rounded-full border border-white/20 px-5 py-2.5 text-sm hover:border-violet-300">Export backup ({leads.length})</button>
             </div>
+            <form onSubmit={searchPublicRecords} className="mt-6 border-t border-white/10 pt-5">
+              <p className="text-xs font-semibold uppercase tracking-[.16em] text-violet-200">Search public web sources</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="text-xs text-white/55">Estate / decedent name
+                  <input required maxLength={120} value={searchName} onChange={(e) => setSearchName(e.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 px-3 py-2.5 text-sm text-white" placeholder="Enter a name to research" />
+                </label>
+                <label className="text-xs text-white/55">Virginia locality
+                  <input required maxLength={120} value={searchLocality} onChange={(e) => setSearchLocality(e.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 px-3 py-2.5 text-sm text-white" placeholder="County or independent city" />
+                </label>
+              </div>
+              <button disabled={searching} type="submit" className="mt-3 rounded-full border border-violet-300/50 px-5 py-2.5 text-sm font-semibold text-violet-100 disabled:opacity-50">{searching ? "Searching public sources…" : "Search public sources"}</button>
+              <p className="mt-2 text-xs leading-5 text-white/40">Searches public web pages, not a court database. Results can be incomplete or unrelated; confirm every record with the Circuit Court clerk.</p>
+            </form>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[.035] p-5">
             <p className="text-xs font-bold uppercase tracking-[.18em] text-white/45">Official Virginia resources</p>
@@ -208,6 +265,27 @@ export function ProbateSearch() {
                 <button type="button" onClick={() => { setForm(EMPTY_FORM); setShowForm(false); }} className="rounded-full border border-white/20 px-5 py-2.5 text-sm">Cancel</button>
               </div>
             </form>
+          )}
+
+          {publicResults.length > 0 && (
+            <div className="mt-5 rounded-2xl border border-violet-300/20 bg-violet-300/[.04] p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="font-semibold">Public web results <span className="text-white/40">({publicResults.length})</span></h3>
+                <button onClick={() => setPublicResults([])} className="text-xs text-white/50 hover:text-white">Clear results</button>
+              </div>
+              <div className="space-y-3">
+                {publicResults.map((result) => (
+                  <article key={result.url} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <a href={result.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-violet-200 underline">{result.title} ↗</a>
+                    <p className="mt-1 text-xs leading-5 text-white/60">{result.description}</p>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] text-white/40">{result.sourceType}{result.date ? ` · ${result.date}` : ""}</span>
+                      <button onClick={() => saveSearchResult(result)} className="rounded-full border border-white/20 px-3 py-1.5 text-xs hover:border-violet-300">Save as lead</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
           )}
 
           <div className="mt-5 space-y-3">
