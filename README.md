@@ -60,6 +60,18 @@ npm run deploy
 
 The deployment script builds the application and deploys the Worker. If `BRAVE_SEARCH_API_KEY` is provided securely in the build environment, it also updates the Worker secret. A secret already configured directly on the Worker should be retained across ordinary code deployments.
 
+## Probate research portal
+
+A standalone public-record research portal is deployed at:
+
+`https://theintro2society.org/probate`
+
+The portal is served by the Cloudflare Worker `probate-portal`. Its public-web search form sends requests to `/api/probate-search`, which is routed to the `agent-starter` Worker and uses the existing `BRAVE_SEARCH_API_KEY` secret. The original site routes remain assigned to the existing `intro2society` Worker.
+
+The portal stores saved leads in the visitor's browser local storage on that device. It is not a shared account database or a direct Circuit Court records integration. Search results are leads only and must be independently confirmed with the appropriate Circuit Court clerk. Do not store confidential or sensitive personal information in the portal.
+
+The standalone Worker source is `workers/probate-portal.js`. Its route is managed in Cloudflare for `theintro2society.org/probate*`; the API route `theintro2society.org/api/probate-search*` targets `agent-starter`.
+
 ## Main project files
 
 - `src/server.ts` — chat agent, research tools, opportunity library, and scheduled reports.
