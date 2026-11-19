@@ -53,6 +53,9 @@ jobs:
       - name: Run memory worker tests
         run: npm run test:memory
 
+      - name: Check standalone probate Worker syntax
+        run: node --check workers/probate-portal.js
+
       - name: Build application
         run: npx vite build
 
