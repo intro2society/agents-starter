@@ -35,6 +35,59 @@ Enter the Brave Search API key in Cloudflare's secret-value field. Do not commit
 
 Without this secret, chat can still load, but the `searchWeb` tool will report that web search is not configured. Public page reading does not require the Brave key.
 
+## Configure AI model selection
+
+You can override model selection through Worker secrets/variables:
+
+```text
+AI_CHAT_MODEL
+AI_TASK_MODEL
+```
+
+Defaults used when not set:
+
+- `AI_CHAT_MODEL` → `@cf/deepseek-ai/deepseek-v4.1-flash-1017`
+- `AI_TASK_MODEL` → `@cf/google/gemma-4-26b-a4b-it`
+
+## Configure affiliate links for website monetization
+
+The chat UI includes an affiliate-link banner. You can manage those links via one Worker secret:
+
+```text
+AFFILIATE_LINKS_JSON
+```
+
+Example value:
+
+```json
+[
+  {
+    "label": "Your Coursera Partner Link",
+    "url": "https://your-affiliate-link.example/coursera"
+  },
+  {
+    "label": "Your Audible Partner Link",
+    "url": "https://your-affiliate-link.example/audible"
+  }
+]
+```
+
+The Worker exposes the configured links at:
+
+```text
+GET /api/affiliate-links
+```
+
+If this secret is missing or invalid, the app falls back to default affiliate-network links.
+
+## Health endpoint
+
+The Worker exposes a lightweight health endpoint:
+
+```text
+GET /api/health
+```
+
 ## Local development
 
 ```bash
@@ -58,7 +111,7 @@ npx vite build
 npm run deploy
 ```
 
-The deployment script builds the application and deploys the Worker. If `BRAVE_SEARCH_API_KEY` is provided securely in the build environment, it also updates the Worker secret. A secret already configured directly on the Worker should be retained across ordinary code deployments.
+The deployment script builds the application and deploys the Worker. If `BRAVE_SEARCH_API_KEY` and/or `AFFILIATE_LINKS_JSON` are provided securely in the build environment, it also updates those Worker secrets. A secret already configured directly on the Worker should be retained across ordinary code deployments.
 
 ## Probate research portal
 
@@ -80,4 +133,3 @@ The standalone Worker source is `workers/probate-portal.js`. Its route is manage
 - `src/app.tsx` — chat interface.
 - `wrangler.jsonc` — Worker, AI, and Durable Object configuration.
 - `.github/workflows/ci.yml` — formatting, lint, TypeScript, tests, and production build.
-

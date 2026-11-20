@@ -94,6 +94,103 @@ function ThemeToggle() {
   );
 }
 
+type AffiliateLink = {
+  label: string;
+  url: string;
+};
+
+const DEFAULT_AFFILIATE_LINKS: AffiliateLink[] = [
+  {
+    label: "Amazon Associates",
+    url: "https://affiliate-program.amazon.com/"
+  },
+  {
+    label: "Impact Affiliate Network",
+    url: "https://impact.com/"
+  },
+  {
+    label: "PartnerStack",
+    url: "https://partnerstack.com/"
+  },
+  {
+    label: "ClickBank",
+    url: "https://www.clickbank.com/"
+  }
+];
+
+function PromoBanner() {
+  const [links, setLinks] = useState<AffiliateLink[]>(DEFAULT_AFFILIATE_LINKS);
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem("affiliate-banner-hidden") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadLinks = async () => {
+      try {
+        const response = await fetch("/api/affiliate-links");
+        if (!response.ok) return;
+        const data = (await response.json()) as { links?: AffiliateLink[] };
+        if (!cancelled && Array.isArray(data.links) && data.links.length) {
+          setLinks(data.links);
+        }
+      } catch {
+        // fall back to defaults when endpoint is unavailable
+      }
+    };
+    void loadLinks();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (hidden) return null;
+
+  return (
+    <div className="px-5 py-2 bg-kumo-brand/10 border-b border-kumo-line">
+      <div className="max-w-3xl mx-auto flex items-center gap-2">
+        <span className="shrink-0">
+          <Text size="xs" bold>
+            Affiliate links:
+          </Text>
+        </span>
+        <div className="flex-1 flex flex-wrap gap-2">
+          {links.map((link) => (
+            <a
+              key={link.url}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs underline text-kumo-accent hover:text-kumo-brand"
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          shape="square"
+          aria-label="Hide featured links"
+          icon={<XIcon size={12} />}
+          onClick={() => {
+            setHidden(true);
+            try {
+              localStorage.setItem("affiliate-banner-hidden", "1");
+            } catch {
+              // no-op when storage is unavailable
+            }
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Tool rendering ────────────────────────────────────────────────────
 
 function ToolIO({ label, value }: { label: string; value: unknown }) {
@@ -693,6 +790,8 @@ function Chat() {
           </div>
         </div>
       </header>
+
+      <PromoBanner />
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
