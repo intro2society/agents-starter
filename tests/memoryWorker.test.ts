@@ -40,8 +40,7 @@ test("registers the default server name and user-scoped URL", async () => {
   const result = await registerMemoryWorker(agent, "alice");
 
   assert.equal(result, "server-id");
-  assert.deepEqual(calls, [[
-    DEFAULT_MEMORY_SERVER_NAME,
-    `${DEFAULT_MEMORY_WORKER_BASE_URL}/alice/sse`
-  ]]);
+  assert.deepEqual(calls, [
+    [DEFAULT_MEMORY_SERVER_NAME, `${DEFAULT_MEMORY_WORKER_BASE_URL}/alice/sse`]
+  ]);
 });
