@@ -457,7 +457,7 @@ function Chat() {
     status
   } = useAgentChat({
     agent,
-    experimental_throttle: 100,
+    experimental_throttle: 50,
     onToolCall: async ({ toolCall, addToolOutput }) => {
       if (toolCall.toolName === "getUserTimezone") {
         addToolOutput({

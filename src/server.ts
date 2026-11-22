@@ -5,6 +5,7 @@ import { AIChatAgent, type OnChatMessageOptions } from "@cloudflare/ai-chat";
 import {
   convertToModelMessages,
   pruneMessages,
+  smoothStream,
   stepCountIs,
   streamText,
   tool
@@ -83,6 +84,43 @@ function resolveAffiliateLinks(env: Env): AffiliateLink[] {
   }
 }
 
+const TOOL_CACHE_TTL_MS = 10 * 60_000;
+const TOOL_CACHE_MAX_ENTRIES = 200;
+const toolCache = new Map<string, { expires: number; value: string }>();
+
+// Reuses recent identical search/page results so repeated lookups skip the network.
+function withToolCache<T>(
+  name: string,
+  run: (input: T) => Promise<string>
+): (input: T) => Promise<string> {
+  return async (input) => {
+    const key = `${name}:${JSON.stringify(input)}`;
+    const hit = toolCache.get(key);
+    if (hit && hit.expires > Date.now()) return hit.value;
+    const value = await run(input);
+    // Only cache successful results, not errors or unconfigured states.
+    if (
+      !/^(Web search|Page retrieval|Invalid|Only public|The page)/.test(value)
+    ) {
+      if (toolCache.size >= TOOL_CACHE_MAX_ENTRIES) {
+        const oldest = toolCache.keys().next().value;
+        if (oldest !== undefined) toolCache.delete(oldest);
+      }
+      toolCache.set(key, { expires: Date.now() + TOOL_CACHE_TTL_MS, value });
+    }
+    return value;
+  };
+}
+
+const MAX_HISTORY_MESSAGES = 40;
+
+// Keeps the latest messages without starting on an orphaned tool result.
+function trimHistory<T extends { role: string }>(messages: T[]): T[] {
+  const trimmed = messages.slice(-MAX_HISTORY_MESSAGES);
+  while (trimmed.length > 1 && trimmed[0].role === "tool") trimmed.shift();
+  return trimmed;
+}
+
 function createResearchTools(env: Env) {
   const apiKey = (env as ResearchEnvironment).BRAVE_SEARCH_API_KEY;
 
@@ -94,57 +132,60 @@ function createResearchTools(env: Env) {
         query: z.string().min(2).max(400),
         count: z.number().int().min(1).max(10).default(8)
       }),
-      execute: async ({ query, count }) => {
-        if (!apiKey)
-          return "Web search is not configured. Add BRAVE_SEARCH_API_KEY as a Worker secret.";
-        const searchUrl = new URL(
-          "https://api.search.brave.com/res/v1/web/search"
-        );
-        searchUrl.searchParams.set("q", query);
-        searchUrl.searchParams.set("count", String(count));
-        const response = await fetch(searchUrl, {
-          headers: {
-            Accept: "application/json",
-            "X-Subscription-Token": apiKey
-          }
-        });
-        if (!response.ok)
-          return `Web search failed with HTTP ${response.status}.`;
-        const data = (await response.json()) as {
-          web?: {
-            results?: Array<{
-              title?: string;
-              url?: string;
-              description?: string;
-              age?: string;
-              page_age?: string;
-            }>;
+      execute: withToolCache(
+        "search",
+        async ({ query, count }: { query: string; count: number }) => {
+          if (!apiKey)
+            return "Web search is not configured. Add BRAVE_SEARCH_API_KEY as a Worker secret.";
+          const searchUrl = new URL(
+            "https://api.search.brave.com/res/v1/web/search"
+          );
+          searchUrl.searchParams.set("q", query);
+          searchUrl.searchParams.set("count", String(count));
+          const response = await fetch(searchUrl, {
+            headers: {
+              Accept: "application/json",
+              "X-Subscription-Token": apiKey
+            }
+          });
+          if (!response.ok)
+            return `Web search failed with HTTP ${response.status}.`;
+          const data = (await response.json()) as {
+            web?: {
+              results?: Array<{
+                title?: string;
+                url?: string;
+                description?: string;
+                age?: string;
+                page_age?: string;
+              }>;
+            };
           };
-        };
-        const results = data.web?.results ?? [];
-        if (!results.length) return "No web results were returned.";
-        return results
-          .slice(0, count)
-          .map((item, index) =>
-            [
-              `${index + 1}. ${item.title || "Untitled source"}`,
-              item.url || "",
-              item.age || item.page_age
-                ? `Date: ${item.age || item.page_age}`
-                : "",
-              item.description || ""
-            ]
-              .filter(Boolean)
-              .join("\n")
-          )
-          .join("\n\n");
-      }
+          const results = data.web?.results ?? [];
+          if (!results.length) return "No web results were returned.";
+          return results
+            .slice(0, count)
+            .map((item, index) =>
+              [
+                `${index + 1}. ${item.title || "Untitled source"}`,
+                item.url || "",
+                item.age || item.page_age
+                  ? `Date: ${item.age || item.page_age}`
+                  : "",
+                item.description || ""
+              ]
+                .filter(Boolean)
+                .join("\n")
+            )
+            .join("\n\n");
+        }
+      )
     }),
     readWebPage: tool({
       description:
         "Read the text of a public HTTPS webpage. Use this to verify facts found in search results. Does not access login-protected or paywalled content.",
       inputSchema: z.object({ url: z.string().url() }),
-      execute: async ({ url }) => {
+      execute: withToolCache("page", async ({ url }: { url: string }) => {
         let target: URL;
         try {
           target = new URL(url);
@@ -224,7 +265,7 @@ function createResearchTools(env: Env) {
           .replace(/\s+/g, " ")
           .trim();
         return text.slice(0, 16_000) || "No readable page text was found.";
-      }
+      })
     })
   };
 }
@@ -372,8 +413,10 @@ You may research public websites and save internal research notes. Never bypass 
 ${getSchedulePrompt({ date: new Date() })}
 
 Use the scheduling tool when the user requests a scheduled task.`,
+      experimental_transform: smoothStream({ delayInMs: 12, chunking: "word" }),
       messages: pruneMessages({
-        messages: await convertToModelMessages(this.messages),
+        // A shorter history lowers time-to-first-token on long chats.
+        messages: trimHistory(await convertToModelMessages(this.messages)),
         toolCalls: "before-last-2-messages",
         reasoning: "before-last-message"
       }),

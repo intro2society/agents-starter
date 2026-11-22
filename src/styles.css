@@ -240,3 +240,134 @@ input {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Luxury layer: champagne-gold accents, serif display type, glass surfaces. */
+:root {
+  --lux-gold: #d6b370;
+  --lux-gold-soft: rgba(214, 179, 112, 0.16);
+  --lux-gold-line: rgba(214, 179, 112, 0.32);
+}
+
+@keyframes lux-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+body {
+  background-image:
+    radial-gradient(
+      ellipse at 15% 0%,
+      rgba(214, 179, 112, 0.09),
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse at 90% 100%,
+      rgba(111, 74, 247, 0.1),
+      transparent 50%
+    );
+  background-size: auto;
+}
+::selection {
+  background: var(--lux-gold);
+}
+
+#root header {
+  border-bottom: 1px solid var(--lux-gold-line) !important;
+  box-shadow: 0 1px 40px rgba(214, 179, 112, 0.06);
+}
+#root header h1::before {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  background: linear-gradient(90deg, #f6e7c1, var(--lux-gold) 60%, #a98343);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+#root header button:hover,
+#root .flex-1.overflow-y-auto button:hover {
+  border-color: var(--lux-gold) !important;
+  color: var(--lux-gold) !important;
+}
+
+#root .flex-1.overflow-y-auto h1,
+#root .flex-1.overflow-y-auto h2,
+#root .flex-1.overflow-y-auto h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+/* Messages */
+#root .flex-1.overflow-y-auto .flex.justify-end,
+#root .flex-1.overflow-y-auto .flex.justify-start {
+  animation: lux-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+#root .rounded-2xl.bg-kumo-contrast {
+  color: #17130a !important;
+  background: linear-gradient(
+    135deg,
+    #f1dca6 0%,
+    #d6b370 55%,
+    #b8924d 100%
+  ) !important;
+  box-shadow: 0 10px 30px rgba(214, 179, 112, 0.22);
+  font-weight: 500;
+}
+#root .rounded-2xl.bg-kumo-base {
+  background: rgba(255, 255, 255, 0.045) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+/* Composer */
+#root .border-t.border-kumo-line.bg-kumo-base {
+  border-color: var(--lux-gold-line) !important;
+}
+#root .border-t.border-kumo-line.bg-kumo-base form > div.flex.items-end {
+  background: rgba(27, 29, 25, 0.8) !important;
+  border: 1px solid var(--lux-gold-line) !important;
+  backdrop-filter: blur(16px);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+#root
+  .border-t.border-kumo-line.bg-kumo-base
+  form
+  > div.flex.items-end:focus-within {
+  border-color: var(--lux-gold) !important;
+  box-shadow:
+    0 0 0 3px var(--lux-gold-soft),
+    0 16px 50px rgba(0, 0, 0, 0.35) !important;
+}
+#root
+  .border-t.border-kumo-line.bg-kumo-base
+  form
+  button[aria-label="Send message"] {
+  color: #17130a !important;
+  background: linear-gradient(
+    135deg,
+    #f1dca6 0%,
+    #d6b370 60%,
+    #b8924d 100%
+  ) !important;
+  border-color: var(--lux-gold) !important;
+  box-shadow: 0 12px 26px rgba(214, 179, 112, 0.3);
+}
+
+#root .flex-1.overflow-y-auto {
+  scrollbar-color: var(--lux-gold-line) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root .flex-1.overflow-y-auto .flex {
+    animation: none;
+  }
+}

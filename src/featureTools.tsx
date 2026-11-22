@@ -209,11 +209,20 @@ export function FeatureTools() {
           </article>
         )}
         {imageUrl && (
-          <img
-            className="max-h-[70vh] rounded-xl border border-white/15"
-            src={imageUrl}
-            alt={prompt}
-          />
+          <div className="space-y-3">
+            <img
+              className="max-h-[70vh] rounded-xl border border-white/15"
+              src={imageUrl}
+              alt={prompt}
+            />
+            <a
+              className="inline-block rounded-lg bg-[#f2f0e9] px-4 py-2 text-sm font-medium text-[#10110f]"
+              href={imageUrl}
+              download={`generated-image-${Date.now()}.png`}
+            >
+              Download Image
+            </a>
+          </div>
         )}
       </section>
     </main>
