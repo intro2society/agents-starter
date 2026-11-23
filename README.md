@@ -23,6 +23,12 @@ The agent is designed to distinguish verified facts, estimates, and hypotheses. 
 - The `AI` binding and `ChatAgent` Durable Object configured by `wrangler.jsonc`.
 - A Brave Search API key for web-search functionality.
 
+## Agent memory and privacy
+
+The chat UI assigns each browser profile a random visitor-specific Durable Object name, so separate visitors do not share the same ChatAgent conversation or opportunity library. This identifier is stored in that browser profile and does not synchronize across devices. Clearing browser storage creates a new visitor identity.
+
+Optional semantic long-term memory is integrated through Mem0 Platform. To activate it, add a Worker secret named `MEM0_API_KEY` to `agent-starter`. Without that secret, the existing Cloudflare Durable Object chat history and opportunity library continue to work. Never put the key in browser code or commit it to Git. See [the agent optimization map](docs/agent-optimization.md) for the upstream projects and deployment boundaries.
+
 ## Configure web search
 
 In Cloudflare, open **Workers & Pages → agent-starter → Settings → Variables and Secrets**. Add a secret named:
