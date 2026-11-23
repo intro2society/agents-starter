@@ -17,7 +17,7 @@
     "types": "wrangler types env.d.ts",
     "format": "oxfmt --write .",
     "lint": "oxlint src/",
-    "test:memory": "node --experimental-strip-types --test tests/memoryWorker.test.ts",
+    "test:memory": "node --experimental-strip-types --test tests/*.test.ts",
     "check": "oxfmt --check . && oxlint src/ && tsc"
   },
   "dependencies": {
