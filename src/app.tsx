@@ -4,6 +4,7 @@ import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
 import type { MCPServersState } from "agents";
 import type { ChatAgent } from "./server";
+import { getOrCreateVisitorAgentName } from "./visitorIdentity";
 import {
   Badge,
   Button,
@@ -378,8 +379,12 @@ function Chat() {
   const [isAddingServer, setIsAddingServer] = useState(false);
   const mcpPanelRef = useRef<HTMLDivElement>(null);
 
+  const [agentName] = useState(() =>
+    getOrCreateVisitorAgentName(window.localStorage)
+  );
   const agent = useAgent<ChatAgent>({
     agent: "ChatAgent",
+    name: agentName,
     onOpen: useCallback(() => setConnected(true), []),
     onClose: useCallback(() => setConnected(false), []),
     onError: useCallback(
