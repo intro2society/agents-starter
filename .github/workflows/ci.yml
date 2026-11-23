@@ -56,6 +56,9 @@ jobs:
       - name: Check standalone probate Worker syntax
         run: node --check workers/probate-portal.js
 
+      - name: Check community blackboard Worker syntax
+        run: node --check workers/community-blackboard.js
+
       - name: Build application
         run: npx vite build
 
