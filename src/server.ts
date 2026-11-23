@@ -16,8 +16,10 @@ import {
   DEFAULT_MEMORY_WORKER_BASE_URL,
   registerMemoryWorker
 } from "./memoryWorker";
+import { addMem0Memory, searchMem0Memory } from "./mem0Memory";
 
 type ResearchEnvironment = Env & { BRAVE_SEARCH_API_KEY?: string };
+type Mem0Environment = Env & { MEM0_API_KEY?: string };
 type AgentModelEnvironment = Env & {
   AI_CHAT_MODEL?: string;
   AI_TASK_MODEL?: string;
@@ -346,6 +348,8 @@ export class ChatAgent extends AIChatAgent<Env> {
     );
     const researchTools = createResearchTools(this.env);
     const mcpTools = this.mcp.getAITools();
+    const mem0ApiKey = (this.env as Mem0Environment).MEM0_API_KEY?.trim();
+    const memoryUserId = this.ctx.id.toString();
 
     const result = streamText({
       model: workersai(chatModel, {
@@ -364,6 +368,7 @@ For every research task:
 - Compare opportunities using consistent criteria and explain why each score was assigned.
 - Identify low-cost validation experiments and concrete next steps.
 - Save substantial, useful opportunities with the saveOpportunity tool. Use listOpportunities to check existing records before creating duplicates.
+- Use searchLongTermMemory when prior user context could materially improve the research. Save long-term memories only when the user explicitly asks you to remember something; never save sensitive personal information.
 - Never fabricate market size, revenue, costs, statistics, citations, or evidence. State when reliable evidence is unavailable.
 - Do not claim that a task is running in the background unless a scheduled task was successfully created.
 
@@ -380,6 +385,22 @@ Use the scheduling tool when the user requests a scheduled task.`,
       tools: {
         ...researchTools,
         ...mcpTools,
+        saveLongTermMemory: tool({
+          description: "Save a non-sensitive fact or preference to this visitor’s private long-term memory only when the user explicitly asks you to remember it. Requires the optional MEM0_API_KEY secret.",
+          inputSchema: z.object({ text: z.string().min(3).max(2000) }),
+          execute: async ({ text }) => {
+            if (!mem0ApiKey) return "Long-term semantic memory is not activated. The agent’s existing chat and opportunity history remains stored in its Cloudflare Durable Object.";
+            return await addMem0Memory(mem0ApiKey, memoryUserId, text);
+          }
+        }),
+        searchLongTermMemory: tool({
+          description: "Search this visitor’s private long-term memory for relevant non-sensitive preferences, decisions, or project context. Requires the optional MEM0_API_KEY secret.",
+          inputSchema: z.object({ query: z.string().min(2).max(500) }),
+          execute: async ({ query }) => {
+            if (!mem0ApiKey) return "Long-term semantic memory is not activated. Use the current conversation and saved opportunity library instead.";
+            return await searchMem0Memory(mem0ApiKey, memoryUserId, query);
+          }
+        }),
         saveOpportunity: tool({
           description:
             "Save a researched business opportunity to this agent's private, persistent opportunity library. Use only after gathering meaningful evidence; include source URLs and distinguish estimates from verified facts.",
