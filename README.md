@@ -131,6 +131,12 @@ The main Intro2Society homepage now includes a visible link to the portal. The p
 
 The standalone Worker source is `workers/probate-portal.js`. Its route is managed in Cloudflare for `theintro2society.org/probate*`; the API route `theintro2society.org/api/probate-search*` targets `agent-starter`.
 
+## Community blackboard and public website tools
+
+The public site includes a persistent anonymous community board at `https://theintro2society.org/blackboard`. It is served by the separate Cloudflare Worker `community-blackboard`, which stores statements in SQLite-backed Durable Object storage. Posts are limited to 500 characters, links and obvious contact details are rejected, repeat submissions are rate-limited, and three reports hide a post. The board does not require names or accounts; it stores a temporary one-way network hash for rate limiting. The board is marked `noindex,nofollow` so visitor statements are not intentionally indexed by search engines.
+
+The homepage also exposes `/tools` (loan payment, compound growth, percentage, and word-count utilities), `/resources` (crawlable editorial guidance), `/robots.txt`, and `/sitemap.xml`. The sitemap lists the homepage, tools, resources, and probate portal; it deliberately excludes the user-generated blackboard.
+
 ## Main project files
 
 - `src/server.ts` — chat agent, research tools, opportunity library, and scheduled reports.
