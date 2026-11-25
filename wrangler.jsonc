@@ -47,5 +47,8 @@
       "binding": "INTRO2SOCIETY_HUB",
       "service": "intro2society-service-hub"
     }
-  ]
+  ],
+  "browser": {
+    "binding": "BROWSER"
+  }
 }
