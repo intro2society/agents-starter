@@ -18,6 +18,9 @@ test("routes only exact approved service endpoints", () => {
   assert.equal(resolveService("/probate-elsewhere"), null);
   assert.equal(resolveService("/blackboardish"), null);
   assert.equal(resolveService("/api/admin"), null);
+  assert.equal(resolveService("/health", "scraper.theintro2society.org"), "PROBATE_SCRAPER");
+  assert.equal(resolveService("/api/states", "scraper.theintro2society.org"), "PROBATE_SCRAPER");
+  assert.equal(resolveService("/", "unknown.theintro2society.org"), null);
 });
 
 test("gateway health endpoint does not need downstream services", async () => {
@@ -68,7 +71,8 @@ test("health check reports the downstream services and returns 200 when healthy"
   const env = {
     AGENT_STARTER: { fetch: async () => new Response("ok", { status: 200 }) },
     PROBATE_PORTAL: { fetch: async () => new Response("ok", { status: 200 }) },
-    COMMUNITY_BLACKBOARD: { fetch: async () => new Response("ok", { status: 200 }) }
+    COMMUNITY_BLACKBOARD: { fetch: async () => new Response("ok", { status: 200 }) },
+    PROBATE_SCRAPER: { fetch: async () => new Response("ok", { status: 200 }) }
   };
   const response = await worker.fetch(
     new Request("https://hub.invalid/__hub/check"),
@@ -80,6 +84,7 @@ test("health check reports the downstream services and returns 200 when healthy"
   assert.equal(body.services.agentStarter.status, 200);
   assert.equal(body.services.probatePortal.status, 200);
   assert.equal(body.services.communityBlackboard.status, 200);
+  assert.equal(body.services.probateScraper.status, 200);
 });
 
 test("health check reports 503 when a downstream service is unhealthy", async () => {
@@ -87,7 +92,8 @@ test("health check reports 503 when a downstream service is unhealthy", async ()
   const env = {
     AGENT_STARTER: { fetch: async () => new Response("ok", { status: 200 }) },
     PROBATE_PORTAL: { fetch: async () => new Response("unavailable", { status: 503 }) },
-    COMMUNITY_BLACKBOARD: { fetch: async () => new Response("ok", { status: 200 }) }
+    COMMUNITY_BLACKBOARD: { fetch: async () => new Response("ok", { status: 200 }) },
+    PROBATE_SCRAPER: { fetch: async () => new Response("ok", { status: 200 }) }
   };
   const response = await worker.fetch(
     new Request("https://hub.invalid/__hub/check"),
@@ -132,4 +138,23 @@ test("upstream exception returns 502 with a request id", async () => {
   assert.equal(response.status, 502);
   assert.ok(response.headers.get("X-Request-Id"));
   assert.equal(await response.text(), "Upstream service unavailable");
+});
+
+test("gateway forwards scraper subdomain requests to the scraper binding", async () => {
+  const worker = (await import("./worker.js")).default;
+  let received;
+  const env = {
+    PROBATE_SCRAPER: {
+      fetch: async (request) => {
+        received = request;
+        return new Response("probate research workspace", { status: 200 });
+      }
+    }
+  };
+  const request = new Request("https://scraper.theintro2society.org/api/states");
+  const response = await worker.fetch(request, env);
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "probate research workspace");
+  assert.equal(received.url, request.url);
+  assert.equal(response.headers.get("X-Intro2Society-Gateway"), "service-hub");
 });
