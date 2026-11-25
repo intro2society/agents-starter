@@ -41,5 +41,11 @@
       "type": "durable-object",
       "storage": "sqlite"
     }
-  }
+  },
+  "services": [
+    {
+      "binding": "INTRO2SOCIETY_HUB",
+      "service": "intro2society-service-hub"
+    }
+  ]
 }
