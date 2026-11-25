@@ -40,7 +40,9 @@ The hub forwards the original request headers, including Cloudflare's client-IP 
 
 ## Deploy and validate
 
-Use the repository's pinned Wrangler version:
+After this change is merged, the GitHub deployment workflow will deploy both the main AI Worker and this service hub. Automatic deployment requires the repository Actions secret named `CLOUDFLARE_API_TOKEN`; do not place its value in source code or chat.
+
+For a manual deployment, use the repository's pinned Wrangler version:
 
 ```bash
 npx wrangler deploy --config wrangler.hub.jsonc
