@@ -28,6 +28,10 @@
     {
       "binding": "COMMUNITY_BLACKBOARD",
       "service": "community-blackboard"
+    },
+    {
+      "binding": "PROBATE_SCRAPER",
+      "service": "probate-opportunity-scraper"
     }
   ],
   "routes": [
@@ -45,6 +49,10 @@
     },
     {
       "pattern": "theintro2society.org/api/probate-search*",
+      "zone_name": "theintro2society.org"
+    },
+    {
+      "pattern": "scraper.theintro2society.org/*",
       "zone_name": "theintro2society.org"
     }
   ],
