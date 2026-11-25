@@ -9,6 +9,8 @@ The live Cloudflare Worker is `agent-starter`; this repository (`intro2society/a
 - **AI chat** powered by Cloudflare Workers AI.
 - **Public web research** through Brave Search, with source titles, URLs, and dates when available.
 - **Source verification** by reading public HTTPS webpages.
+- **Browser Run research** for JavaScript-rendered page reading, bounded same-origin crawling, and image-reference research.
+- **Image-generation web context** from current public search results and up to two rendered source pages when Brave Search and the Browser Run binding are configured.
 - **Persistent opportunity library** stored in the agent's SQLite-backed Durable Object.
 - **Scheduled research** with saved reports and task status.
 - **MCP integrations** for additional connected tools.
@@ -28,6 +30,19 @@ The agent is designed to distinguish verified facts, estimates, and hypotheses. 
 The chat UI assigns each browser profile a random visitor-specific Durable Object name, so separate visitors do not share the same ChatAgent conversation or opportunity library. This identifier is stored in that browser profile and does not synchronize across devices. Clearing browser storage creates a new visitor identity.
 
 Optional semantic long-term memory is integrated through Mem0 Platform. To activate it, add a Worker secret named `MEM0_API_KEY` to `agent-starter`. Without that secret, the existing Cloudflare Durable Object chat history and opportunity library continue to work. Never put the key in browser code or commit it to Git. See [the agent optimization map](docs/agent-optimization.md) for the upstream projects and deployment boundaries.
+
+## Configure rendered browsing and image research
+
+The Worker uses Cloudflare Browser Run through a native `BROWSER` binding declared in `wrangler.jsonc`. The binding does not require a Cloudflare API token in Worker secrets.
+
+The chat and scheduled research agents expose:
+- `readRenderedWebPage` for JavaScript-rendered public pages.
+- `crawlWebsite` for a bounded crawl of up to five pages, restricted to the starting page's origin.
+- `researchImageReferences` for current public-web research to improve image concepts.
+
+The image-generation endpoint also uses the configured `BRAVE_SEARCH_API_KEY` to retrieve current text references before generating an image. When Browser Run is available, it reads up to two public source pages. Set `useWebResearch: false` in the `/api/image-generation` JSON body to skip this extra research. You can optionally supply up to two `referenceUrls` to prioritize specific public sources.
+
+This research supplies text context only; the FLUX image model does not directly browse websites or ingest webpage images. It creates an original image from the resulting prompt. Website content is treated as untrusted reference material, and the crawler does not bypass robots restrictions, logins, paywalls, or CAPTCHAs.
 
 ## Configure web search
 
