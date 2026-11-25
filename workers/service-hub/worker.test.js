@@ -1,0 +1,47 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { resolveService } from "./worker.js";
+
+test("routes only the three approved service paths", () => {
+  assert.equal(resolveService("/probate"), "PROBATE_PORTAL");
+  assert.equal(resolveService("/probate/case/123"), "PROBATE_PORTAL");
+  assert.equal(resolveService("/blackboard"), "COMMUNITY_BLACKBOARD");
+  assert.equal(resolveService("/blackboard/api/statements"), "COMMUNITY_BLACKBOARD");
+  assert.equal(resolveService("/api/probate-search"), "AGENT_STARTER");
+  assert.equal(resolveService("/api/probate-search/"), "AGENT_STARTER");
+  assert.equal(resolveService("/"), null);
+  assert.equal(resolveService("/probate-elsewhere"), null);
+  assert.equal(resolveService("/blackboardish"), null);
+  assert.equal(resolveService("/api/admin"), null);
+});
+
+test("gateway health endpoint does not need downstream services", async () => {
+  const worker = (await import("./worker.js")).default;
+  const response = await worker.fetch(
+    new Request("https://hub.invalid/__hub/health"),
+    {}
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.service, "intro2society-service-hub");
+});
+
+test("gateway forwards the original request to the correct binding", async () => {
+  const worker = (await import("./worker.js")).default;
+  let received;
+  const env = {
+    PROBATE_PORTAL: {
+      fetch: async (request) => {
+        received = request;
+        return new Response("probate page", { status: 200 });
+      }
+    }
+  };
+  const request = new Request("https://theintro2society.org/probate?state=VA");
+  const response = await worker.fetch(request, env);
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "probate page");
+  assert.equal(received.url, request.url);
+  assert.equal(response.headers.get("X-Intro2Society-Gateway"), "service-hub");
+});
