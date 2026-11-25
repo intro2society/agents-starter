@@ -2,13 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { resolveService } from "./worker.js";
 
-test("routes only the three approved service paths", () => {
+test("routes only exact approved service endpoints", () => {
   assert.equal(resolveService("/probate"), "PROBATE_PORTAL");
-  assert.equal(resolveService("/probate/case/123"), "PROBATE_PORTAL");
+  assert.equal(resolveService("/probate/"), "PROBATE_PORTAL");
+  assert.equal(resolveService("/probate/case/123"), null);
   assert.equal(resolveService("/blackboard"), "COMMUNITY_BLACKBOARD");
+  assert.equal(resolveService("/blackboard/"), "COMMUNITY_BLACKBOARD");
+  assert.equal(resolveService("/blackboard/health"), "COMMUNITY_BLACKBOARD");
   assert.equal(resolveService("/blackboard/api/statements"), "COMMUNITY_BLACKBOARD");
+  assert.equal(resolveService("/blackboard/api/statements/123/report"), "COMMUNITY_BLACKBOARD");
+  assert.equal(resolveService("/blackboard/private"), null);
   assert.equal(resolveService("/api/probate-search"), "AGENT_STARTER");
-  assert.equal(resolveService("/api/probate-search/"), "AGENT_STARTER");
+  assert.equal(resolveService("/api/probate-search/"), null);
   assert.equal(resolveService("/"), null);
   assert.equal(resolveService("/probate-elsewhere"), null);
   assert.equal(resolveService("/blackboardish"), null);
@@ -25,6 +30,16 @@ test("gateway health endpoint does not need downstream services", async () => {
   const body = await response.json();
   assert.equal(body.ok, true);
   assert.equal(body.service, "intro2society-service-hub");
+});
+
+test("gateway health endpoint is read-only", async () => {
+  const worker = (await import("./worker.js")).default;
+  const response = await worker.fetch(
+    new Request("https://hub.invalid/__hub/health", { method: "POST" }),
+    {}
+  );
+  assert.equal(response.status, 405);
+  assert.equal(response.headers.get("Allow"), "GET");
 });
 
 test("gateway forwards the original request to the correct binding", async () => {
