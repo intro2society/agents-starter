@@ -53,6 +53,9 @@ jobs:
       - name: Run memory worker tests
         run: npm run test:memory
 
+      - name: Validate service hub Wrangler configuration
+        run: npx wrangler deploy --dry-run --config wrangler.hub.jsonc
+
       - name: Test internal service hub routing
         run: node --test workers/service-hub/worker.test.js
 
