@@ -11,7 +11,7 @@ The `intro2society-service-hub` Worker is a narrow internal gateway for four exi
 | `/api/probate-search` | `AGENT_STARTER` | `agent-starter` |
 | `scraper.theintro2society.org/*` | `PROBATE_SCRAPER` | `probate-opportunity-scraper` |
 
-Only the hub declares these four service bindings. The downstream Workers do not need reciprocal bindings.
+Only the hub declares the four downstream service bindings. The AI research Worker also has one caller-side binding back to the hub so its research tools can request the public probate directory; it calls only the scraper hostname, so it does not recurse into its own probate-search endpoint. The downstream Workers do not need reciprocal bindings.
 
 ## Health checks
 
