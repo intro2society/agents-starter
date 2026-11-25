@@ -17,8 +17,10 @@ import {
   registerMemoryWorker
 } from "./memoryWorker";
 import { addMem0Memory, searchMem0Memory } from "./mem0Memory";
+import { fetchProbateDirectory } from "./probateDirectory";
 
 type ResearchEnvironment = Env & { BRAVE_SEARCH_API_KEY?: string };
+type ServiceHubEnvironment = Env & { INTRO2SOCIETY_HUB?: Fetcher };
 type Mem0Environment = Env & { MEM0_API_KEY?: string };
 type AgentModelEnvironment = Env & {
   AI_CHAT_MODEL?: string;
@@ -87,8 +89,18 @@ function resolveAffiliateLinks(env: Env): AffiliateLink[] {
 
 function createResearchTools(env: Env) {
   const apiKey = (env as ResearchEnvironment).BRAVE_SEARCH_API_KEY;
+  const serviceHub = (env as ServiceHubEnvironment).INTRO2SOCIETY_HUB;
 
   return {
+    getProbateResearchDirectory: tool({
+      description:
+        "Retrieve official probate court starting points for all 50 states from the connected Intro2Society probate research workspace. Use this before state-specific probate research, then use searchWeb and readWebPage to investigate the relevant official court sources. The directory supports researcher-assisted work; do not claim that it automatically harvests court case records.",
+      inputSchema: z.object({
+        state: z.string().trim().min(2).max(32).optional()
+      }),
+      execute: async ({ state }) =>
+        fetchProbateDirectory(serviceHub, state)
+    }),
     searchWeb: tool({
       description:
         "Search the public web for business research sources. Returns source titles, URLs, dates when available, and search-result descriptions. Use multiple queries and verify important claims by reading source pages.",
