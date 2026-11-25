@@ -1,4 +1,8 @@
-export function resolveService(pathname) {
+export function resolveService(pathname, hostname = "theintro2society.org") {
+  if (hostname === "scraper.theintro2society.org") {
+    return "PROBATE_SCRAPER";
+  }
+  if (hostname !== "theintro2society.org") return null;
   if (pathname === "/probate" || pathname === "/probate/") {
     return "PROBATE_PORTAL";
   }
@@ -68,13 +72,18 @@ export default {
         checkService(
           env.COMMUNITY_BLACKBOARD,
           new Request("https://internal.invalid/blackboard/health")
+        ),
+        checkService(
+          env.PROBATE_SCRAPER,
+          new Request("https://internal.invalid/health")
         )
       ]);
 
       const services = {
         agentStarter: checks[0],
         probatePortal: checks[1],
-        communityBlackboard: checks[2]
+        communityBlackboard: checks[2],
+        probateScraper: checks[3]
       };
       const ok = Object.values(services).every((result) => result.ok);
 
@@ -91,7 +100,7 @@ export default {
       });
     }
 
-    const bindingName = resolveService(url.pathname);
+    const bindingName = resolveService(url.pathname, url.hostname);
     if (!bindingName) {
       return new Response("Not found", { status: 404 });
     }
