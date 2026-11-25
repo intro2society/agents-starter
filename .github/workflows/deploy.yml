@@ -60,3 +60,19 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: "6d121e7041ead643e98f3562a9866c0a"
           command: deploy --config wrangler.hub.jsonc
+
+      - name: Verify production service hub and all downstream Workers
+        if: steps.credentials.outputs.available == 'true'
+        run: |
+          response="$(curl --fail --silent --show-error --retry 10 --retry-delay 5 --retry-connrefused https://theintro2society.org/__hub/check)"
+          echo "$response"
+          node -e '
+            const body = JSON.parse(process.argv[1]);
+            const required = ["agentStarter", "probatePortal", "communityBlackboard", "probateScraper"];
+            const failed = required.filter((name) => body.services?.[name]?.ok !== true || body.services[name]?.status !== 200);
+            if (body.ok !== true || failed.length) {
+              console.error("Production service health check failed:", failed.join(", ") || "overall status is not healthy");
+              process.exit(1);
+            }
+            console.log("All four production services returned HTTP 200.");
+          ' "$response"
