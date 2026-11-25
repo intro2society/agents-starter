@@ -191,6 +191,7 @@ test("probate-search POST preserves JSON body, origin, and client IP headers", a
   assert.equal(response.status, 200);
   assert.deepEqual(received.body, payload);
   assert.equal(received.method, "POST");
+  assert.equal(received.url, request.url);
   assert.equal(received.contentType, "application/json");
   assert.equal(received.origin, "https://theintro2society.org");
   assert.equal(received.clientIp, "203.0.113.10");
@@ -225,6 +226,7 @@ test("blackboard POST preserves statement body and client headers", async () => 
   assert.equal(response.status, 201);
   assert.deepEqual(received.body, payload);
   assert.equal(received.method, "POST");
+  assert.equal(received.url, request.url);
   assert.equal(received.contentType, "application/json");
   assert.equal(received.clientIp, "203.0.113.11");
 });
@@ -250,4 +252,32 @@ test("downstream rate-limit responses and headers are preserved", async () => {
   assert.equal(response.status, 429);
   assert.equal(response.headers.get("Retry-After"), "60");
   assert.equal(await response.text(), "Rate limit exceeded. Try again shortly.");
+});
+
+test("downstream 403, 429, and 503 responses preserve status, body, and headers", async () => {
+  const worker = (await import("./worker.js")).default;
+  for (const status of [403, 429, 503]) {
+    const body = `upstream response ${status}`;
+    const env = {
+      AGENT_STARTER: {
+        fetch: async () => new Response(body, {
+          status,
+          headers: {
+            "X-Upstream-Status": String(status),
+            "Retry-After": "60"
+          }
+        })
+      }
+    };
+    const request = new Request("https://theintro2society.org/api/probate-search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decedent: "Sample", locality: "Richmond" })
+    });
+    const response = await worker.fetch(request, env);
+    assert.equal(response.status, status);
+    assert.equal(response.headers.get("X-Upstream-Status"), String(status));
+    assert.equal(response.headers.get("Retry-After"), "60");
+    assert.equal(await response.text(), body);
+  }
 });
