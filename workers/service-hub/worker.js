@@ -101,7 +101,12 @@ export default {
     const requestId = crypto.randomUUID();
     const startedAt = Date.now();
     try {
-      const response = await service.fetch(request);
+      const forwardedHeaders = new Headers(request.headers);
+      forwardedHeaders.set("X-Request-Id", requestId);
+      const forwardedRequest = new Request(request, {
+        headers: forwardedHeaders
+      });
+      const response = await service.fetch(forwardedRequest);
       const durationMs = Date.now() - startedAt;
       const headers = new Headers(response.headers);
       headers.set("X-Intro2Society-Gateway", "service-hub");
