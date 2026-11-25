@@ -46,7 +46,7 @@ export default {
       return Response.json({
         ok: true,
         service: "intro2society-service-hub",
-        routing: ["probate", "blackboard", "probate-search"]
+        routing: ["probate", "blackboard", "probate-search", "probate-scraper"]
       }, {
         headers: { "Cache-Control": "no-store" }
       });
