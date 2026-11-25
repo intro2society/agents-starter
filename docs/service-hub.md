@@ -26,7 +26,7 @@ The health-check endpoint reports status codes only, not response bodies or secr
 
 ## Monitoring and request tracing
 
-Workers Logs and Traces are enabled for the hub. Structured gateway logs record the selected binding, method, path, response status, duration, and a generated request ID. Query strings, request bodies, client IP addresses, and user content are not logged. The request ID is forwarded to the downstream Worker and returned in the `X-Request-Id` response header. Logs are sampled at 100%; traces are sampled at 10%.
+Workers Logs and Traces are enabled for the hub. Structured gateway logs record the selected binding, method, path, response status, duration, and a generated request ID. Query strings, request bodies, client IP addresses, and user content are not logged. The request ID is forwarded to the downstream Worker and returned in the `X-Request-Id` response header. Logs are sampled at 100%; traces are sampled at 10%. Query-string redaction is enabled in Cloudflare observability.
 
 ## Existing abuse protections
 
