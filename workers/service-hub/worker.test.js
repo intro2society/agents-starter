@@ -167,6 +167,7 @@ test("probate-search POST preserves JSON body, origin, and client IP headers", a
     AGENT_STARTER: {
       fetch: async (request) => {
         received = {
+          url: request.url,
           method: request.method,
           body: await request.json(),
           contentType: request.headers.get("content-type"),
@@ -204,6 +205,7 @@ test("blackboard POST preserves statement body and client headers", async () => 
     COMMUNITY_BLACKBOARD: {
       fetch: async (request) => {
         received = {
+          url: request.url,
           method: request.method,
           body: await request.json(),
           contentType: request.headers.get("content-type"),
