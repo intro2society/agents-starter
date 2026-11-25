@@ -29,5 +29,23 @@
       "binding": "COMMUNITY_BLACKBOARD",
       "service": "community-blackboard"
     }
+  ],
+  "routes": [
+    {
+      "pattern": "theintro2society.org/__hub/*",
+      "zone_name": "theintro2society.org"
+    },
+    {
+      "pattern": "theintro2society.org/blackboard*",
+      "zone_name": "theintro2society.org"
+    },
+    {
+      "pattern": "theintro2society.org/probate*",
+      "zone_name": "theintro2society.org"
+    },
+    {
+      "pattern": "theintro2society.org/api/probate-search*",
+      "zone_name": "theintro2society.org"
+    }
   ]
 }
