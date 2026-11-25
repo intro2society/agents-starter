@@ -9,6 +9,7 @@ The `intro2society-service-hub` Worker is a narrow internal gateway for three ex
 | `/probate` and `/probate/*` | `PROBATE_PORTAL` | `probate-portal` |
 | `/blackboard` and `/blackboard/*` | `COMMUNITY_BLACKBOARD` | `community-blackboard` |
 | `/api/probate-search` | `AGENT_STARTER` | `agent-starter` |
+| `scraper.theintro2society.org/*` | `PROBATE_SCRAPER` | `probate-opportunity-scraper` |
 
 Only the hub declares these three service bindings. The downstream Workers do not need reciprocal bindings.
 
@@ -21,6 +22,7 @@ The zone route `theintro2society.org/__hub/*` points to this gateway for monitor
   - `agent-starter`: `GET /api/health`
   - `probate-portal`: `GET /probate`
   - `community-blackboard`: `GET /blackboard/health`
+  - `probate-opportunity-scraper`: `GET /health`
 
 The health-check endpoint reports status codes only, not response bodies or secrets.
 
@@ -48,7 +50,7 @@ For a manual deployment, use the repository's pinned Wrangler version:
 npx wrangler deploy --config wrangler.hub.jsonc
 ```
 
-The config disables the public workers.dev hostname and declares the three intended production routes plus the dedicated `/__hub/*` monitoring route, so future Wrangler deployments preserve the same routing plan.
+The config disables the public workers.dev hostname and declares the four intended production routes plus the dedicated `/__hub/*` monitoring route, so future Wrangler deployments preserve the same routing plan.
 
 Run unit tests with:
 
