@@ -3,8 +3,13 @@
   "name": "agent-starter",
   "main": "src/server.ts",
   "compatibility_date": "2026-06-11",
-  "compatibility_flags": ["nodejs_compat"],
-  "ai": { "binding": "AI", "remote": true },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "ai": {
+    "binding": "AI",
+    "remote": true
+  },
   "ratelimits": [
     {
       "name": "API_RATE_LIMITER",
@@ -18,7 +23,10 @@
   "assets": {
     "directory": "./public",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/agents/*", "/oauth/*"]
+    "run_worker_first": [
+      "/agents/*",
+      "/oauth/*"
+    ]
   },
   "durable_objects": {
     "bindings": [
@@ -28,10 +36,10 @@
       }
     ]
   },
-  "migrations": [
-    {
-      "new_sqlite_classes": ["ChatAgent"],
-      "tag": "v1"
+  "exports": {
+    "ChatAgent": {
+      "type": "durable-object",
+      "storage": "sqlite"
     }
-  ]
+  }
 }
