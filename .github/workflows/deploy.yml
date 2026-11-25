@@ -52,3 +52,11 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: "6d121e7041ead643e98f3562a9866c0a"
           command: deploy
+
+      - name: Deploy internal service hub
+        if: steps.credentials.outputs.available == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: "6d121e7041ead643e98f3562a9866c0a"
+          command: deploy --config wrangler.hub.jsonc
