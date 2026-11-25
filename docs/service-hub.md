@@ -1,17 +1,17 @@
 # Intro2Society internal service hub
 
-The `intro2society-service-hub` Worker is a narrow internal gateway for three existing services. It uses Cloudflare Service Bindings; it does not call public Worker URLs.
+The `intro2society-service-hub` Worker is a narrow internal gateway for four existing services. It uses Cloudflare Service Bindings; it does not call public Worker URLs.
 
 ## Caller-to-service map
 
 | Public path | Service binding | Existing Worker |
 | --- | --- | --- |
-| `/probate` and `/probate/*` | `PROBATE_PORTAL` | `probate-portal` |
-| `/blackboard` and `/blackboard/*` | `COMMUNITY_BLACKBOARD` | `community-blackboard` |
+| `/probate` and `/probate/` | `PROBATE_PORTAL` | `probate-portal` |
+| `/blackboard`, `/blackboard/health`, and `/blackboard/api/*` | `COMMUNITY_BLACKBOARD` | `community-blackboard` |
 | `/api/probate-search` | `AGENT_STARTER` | `agent-starter` |
 | `scraper.theintro2society.org/*` | `PROBATE_SCRAPER` | `probate-opportunity-scraper` |
 
-Only the hub declares these three service bindings. The downstream Workers do not need reciprocal bindings.
+Only the hub declares these four service bindings. The downstream Workers do not need reciprocal bindings.
 
 ## Health checks
 
@@ -50,7 +50,7 @@ For a manual deployment, use the repository's pinned Wrangler version:
 npx wrangler deploy --config wrangler.hub.jsonc
 ```
 
-The config disables the public workers.dev hostname and declares the four intended production routes plus the dedicated `/__hub/*` monitoring route, so future Wrangler deployments preserve the same routing plan.
+The config disables the public workers.dev hostname and declares the four service routes plus the dedicated `/__hub/*` monitoring route, so future Wrangler deployments preserve the same routing plan.
 
 Run unit tests with:
 
