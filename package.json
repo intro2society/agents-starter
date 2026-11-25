@@ -18,7 +18,7 @@
     "format": "oxfmt --write .",
     "lint": "oxlint src/",
     "test:memory": "node --experimental-strip-types --test tests/*.test.ts",
-    "check": "oxfmt --check . && oxlint src/ && tsc"
+    "check": "wrangler types env.d.ts && oxfmt --check . && oxlint src/ && tsc"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.0",
