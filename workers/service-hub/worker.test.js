@@ -158,3 +158,95 @@ test("gateway forwards scraper subdomain requests to the scraper binding", async
   assert.equal(received.url, request.url);
   assert.equal(response.headers.get("X-Intro2Society-Gateway"), "service-hub");
 });
+
+test("probate-search POST preserves JSON body, origin, and client IP headers", async () => {
+  const worker = (await import("./worker.js")).default;
+  let received;
+  const env = {
+    AGENT_STARTER: {
+      fetch: async (request) => {
+        received = {
+          method: request.method,
+          body: await request.json(),
+          contentType: request.headers.get("content-type"),
+          origin: request.headers.get("origin"),
+          clientIp: request.headers.get("cf-connecting-ip")
+        };
+        return Response.json({ results: [] }, { status: 200 });
+      }
+    }
+  };
+  const payload = { decedent: "Sample Person", locality: "Richmond City" };
+  const request = new Request("https://theintro2society.org/api/probate-search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: "https://theintro2society.org",
+      "CF-Connecting-IP": "203.0.113.10"
+    },
+    body: JSON.stringify(payload)
+  });
+  const response = await worker.fetch(request, env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(received.body, payload);
+  assert.equal(received.method, "POST");
+  assert.equal(received.contentType, "application/json");
+  assert.equal(received.origin, "https://theintro2society.org");
+  assert.equal(received.clientIp, "203.0.113.10");
+});
+
+test("blackboard POST preserves statement body and client headers", async () => {
+  const worker = (await import("./worker.js")).default;
+  let received;
+  const env = {
+    COMMUNITY_BLACKBOARD: {
+      fetch: async (request) => {
+        received = {
+          method: request.method,
+          body: await request.json(),
+          contentType: request.headers.get("content-type"),
+          clientIp: request.headers.get("cf-connecting-ip")
+        };
+        return Response.json({ success: true }, { status: 201 });
+      }
+    }
+  };
+  const payload = { text: "A community thought", website: "" };
+  const request = new Request("https://theintro2society.org/blackboard/api/statements", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "CF-Connecting-IP": "203.0.113.11"
+    },
+    body: JSON.stringify(payload)
+  });
+  const response = await worker.fetch(request, env);
+  assert.equal(response.status, 201);
+  assert.deepEqual(received.body, payload);
+  assert.equal(received.method, "POST");
+  assert.equal(received.contentType, "application/json");
+  assert.equal(received.clientIp, "203.0.113.11");
+});
+
+test("downstream rate-limit responses and headers are preserved", async () => {
+  const worker = (await import("./worker.js")).default;
+  const env = {
+    AGENT_STARTER: {
+      fetch: async () => new Response("Rate limit exceeded. Try again shortly.", {
+        status: 429,
+        headers: { "Retry-After": "60" }
+      })
+    }
+  };
+  const response = await worker.fetch(
+    new Request("https://theintro2society.org/api/probate-search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decedent: "Sample", locality: "Richmond" })
+    }),
+    env
+  );
+  assert.equal(response.status, 429);
+  assert.equal(response.headers.get("Retry-After"), "60");
+  assert.equal(await response.text(), "Rate limit exceeded. Try again shortly.");
+});
