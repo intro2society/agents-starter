@@ -43,6 +43,8 @@ test("gateway forwards the original request to the correct binding", async () =>
   assert.equal(response.status, 200);
   assert.equal(await response.text(), "probate page");
   assert.equal(received.url, request.url);
+  assert.ok(received.headers.get("X-Request-Id"));
+  assert.equal(received.headers.get("X-Request-Id"), response.headers.get("X-Request-Id"));
   assert.equal(response.headers.get("X-Intro2Society-Gateway"), "service-hub");
 });
 
