@@ -1,22 +1,19 @@
-const ROUTES = [
-  {
-    matches: (path) => path === "/probate" || path.startsWith("/probate/"),
-    binding: "PROBATE_PORTAL"
-  },
-  {
-    matches: (path) => path === "/blackboard" || path.startsWith("/blackboard/"),
-    binding: "COMMUNITY_BLACKBOARD"
-  },
-  {
-    matches: (path) =>
-      path === "/api/probate-search" ||
-      path.startsWith("/api/probate-search/"),
-    binding: "AGENT_STARTER"
-  }
-];
-
 export function resolveService(pathname) {
-  return ROUTES.find((route) => route.matches(pathname))?.binding ?? null;
+  if (pathname === "/probate" || pathname === "/probate/") {
+    return "PROBATE_PORTAL";
+  }
+  if (
+    pathname === "/blackboard" ||
+    pathname === "/blackboard/" ||
+    pathname === "/blackboard/health" ||
+    pathname.startsWith("/blackboard/api/")
+  ) {
+    return "COMMUNITY_BLACKBOARD";
+  }
+  if (pathname === "/api/probate-search") {
+    return "AGENT_STARTER";
+  }
+  return null;
 }
 
 async function checkService(binding, request) {
@@ -36,6 +33,12 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/__hub/health") {
+      if (request.method !== "GET") {
+        return new Response("Method not allowed", {
+          status: 405,
+          headers: { Allow: "GET" }
+        });
+      }
       return Response.json({
         ok: true,
         service: "intro2society-service-hub",
