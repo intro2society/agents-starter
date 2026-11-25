@@ -24,6 +24,20 @@ The zone route `theintro2society.org/__hub/*` points to this gateway for monitor
 
 The health-check endpoint reports status codes only, not response bodies or secrets.
 
+## Monitoring and request tracing
+
+Workers Logs and Traces are enabled for the hub. Structured gateway logs record the selected binding, method, path, response status, duration, and a generated request ID. Query strings, request bodies, client IP addresses, and user content are not logged. The request ID is forwarded to the downstream Worker and returned in the `X-Request-Id` response header. Logs are sampled at 100%; traces are sampled at 10%.
+
+## Existing abuse protections
+
+The gateway deliberately does not add a second global rate limiter, which could throttle normal page loads and duplicate service-level protections. Existing protections remain in the downstream services:
+
+- `agent-starter` uses its Cloudflare rate-limit binding for POST and WebSocket requests and limits chat messages within each chat Durable Object.
+- `community-blackboard` limits anonymous posts per daily-rotating salted network hash and prevents duplicate reports.
+- `probate-portal` is a read-only research interface; its search API is handled by `agent-starter` and its rate limiter.
+
+The hub forwards the original request headers, including Cloudflare's client-IP header, so downstream protections continue to work.
+
 ## Deploy and validate
 
 Use the repository's pinned Wrangler version:
@@ -32,7 +46,7 @@ Use the repository's pinned Wrangler version:
 npx wrangler deploy --config wrangler.hub.jsonc
 ```
 
-The config disables the public workers.dev hostname. The gateway should be attached only to the three intended zone routes after its bindings have been verified.
+The config disables the public workers.dev hostname. The gateway is attached to the three intended production routes and a dedicated `/__hub/*` monitoring route.
 
 Run unit tests with:
 
