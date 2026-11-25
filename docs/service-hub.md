@@ -48,7 +48,7 @@ For a manual deployment, use the repository's pinned Wrangler version:
 npx wrangler deploy --config wrangler.hub.jsonc
 ```
 
-The config disables the public workers.dev hostname. The gateway is attached to the three intended production routes and a dedicated `/__hub/*` monitoring route.
+The config disables the public workers.dev hostname and declares the three intended production routes plus the dedicated `/__hub/*` monitoring route, so future Wrangler deployments preserve the same routing plan.
 
 Run unit tests with:
 
