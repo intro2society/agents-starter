@@ -75,6 +75,13 @@ export default {
       };
       const ok = Object.values(services).every((result) => result.ok);
 
+      console.log(JSON.stringify({
+        event: "service_health_check",
+        ok,
+        services: Object.fromEntries(
+          Object.entries(services).map(([name, result]) => [name, result.status])
+        )
+      }));
       return Response.json({ ok, services }, {
         status: ok ? 200 : 503,
         headers: { "Cache-Control": "no-store" }
@@ -91,17 +98,42 @@ export default {
       return new Response("Service temporarily unavailable", { status: 503 });
     }
 
+    const requestId = crypto.randomUUID();
+    const startedAt = Date.now();
     try {
       const response = await service.fetch(request);
+      const durationMs = Date.now() - startedAt;
       const headers = new Headers(response.headers);
       headers.set("X-Intro2Society-Gateway", "service-hub");
+      headers.set("X-Request-Id", requestId);
+      console.log(JSON.stringify({
+        event: "service_forward",
+        requestId,
+        service: bindingName,
+        method: request.method,
+        path: url.pathname,
+        status: response.status,
+        durationMs
+      }));
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers
       });
-    } catch {
-      return new Response("Upstream service unavailable", { status: 502 });
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "service_forward_error",
+        requestId,
+        service: bindingName,
+        method: request.method,
+        path: url.pathname,
+        durationMs: Date.now() - startedAt,
+        error: error instanceof Error ? error.message : "Unknown upstream error"
+      }));
+      return new Response("Upstream service unavailable", {
+        status: 502,
+        headers: { "X-Request-Id": requestId }
+      });
     }
   }
 };
