@@ -17,6 +17,7 @@ export function isPublicHttpsUrl(value: string): URL | null {
   try {
     const url = new URL(value);
     const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (/^[0-9.]+$/.test(host) || host.includes(":")) return null;
     if (
       url.protocol !== "https:" ||
       url.username ||
