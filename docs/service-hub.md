@@ -14,6 +14,8 @@ Only the hub declares these three service bindings. The downstream Workers do no
 
 ## Health checks
 
+The zone route `theintro2society.org/__hub/*` points to this gateway for monitoring.
+
 - `GET /__hub/health` checks that the gateway is running.
 - `GET /__hub/check` calls each downstream Worker through its service binding:
   - `agent-starter`: `GET /api/health`
