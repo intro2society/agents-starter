@@ -33,6 +33,7 @@ test("gateway health endpoint does not need downstream services", async () => {
   const body = await response.json();
   assert.equal(body.ok, true);
   assert.equal(body.service, "intro2society-service-hub");
+  assert.deepEqual(body.routing, ["probate", "blackboard", "probate-search", "probate-scraper"]);
 });
 
 test("gateway health endpoint is read-only", async () => {
