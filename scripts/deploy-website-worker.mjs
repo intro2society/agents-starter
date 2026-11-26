@@ -8,8 +8,6 @@ if (!accountId || !apiToken) {
   throw new Error("CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN are required.");
 }
 
-const apiBase = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`;
-
 async function api(path, init = {}) {
   const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}${path}`, {
     ...init,
@@ -30,6 +28,7 @@ const [settingsResponse, versionsResponse] = await Promise.all([
   api(`/workers/scripts/${scriptName}/versions`)
 ]);
 const settings = settingsResponse.result;
+const expectedBindingNames = new Set((settings.bindings || []).map((binding) => binding.name));
 const latestVersion = (versionsResponse.result?.items || [])[0];
 if (!latestVersion?.id) {
   throw new Error("Could not find the current main website Worker version.");
@@ -84,6 +83,11 @@ await api(`/workers/scripts/${scriptName}`, { method: "PUT", body: form });
 
 const verify = await api(`/workers/scripts/${scriptName}/settings`);
 const binding = (verify.result.bindings || []).find((item) => item.name === "AGENT_STARTER");
+const actualBindingNames = new Set((verify.result.bindings || []).map((item) => item.name));
+const missingBindings = [...expectedBindingNames].filter((name) => !actualBindingNames.has(name));
+if (missingBindings.length) {
+  throw new Error(`Main website deployment lost existing bindings: ${missingBindings.join(", ")}`);
+}
 if (binding?.entrypoint !== "WebResearchService") {
   throw new Error("Main website deployment did not retain the WebResearchService RPC binding.");
 }
