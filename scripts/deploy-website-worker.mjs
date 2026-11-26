@@ -29,9 +29,10 @@ if (!latestAgentVersion?.id) {
   throw new Error("Could not find the deployed agent-starter Worker version.");
 }
 const agentVersionResponse = await api(`/workers/scripts/agent-starter/versions/${latestAgentVersion.id}`);
-const rpcExport = agentVersionResponse.result?.resources?.script_runtime?.exports?.WebResearchService;
-if (rpcExport?.type !== "worker") {
-  throw new Error("agent-starter did not publish the WebResearchService RPC entrypoint; refusing to deploy dependent Workers.");
+const namedHandlers = agentVersionResponse.result?.resources?.script?.named_handlers || [];
+const rpcEntry = namedHandlers.find((entry) => entry.name === "WebResearchService");
+if (!rpcEntry?.handlers?.includes("research")) {
+  throw new Error("agent-starter did not publish the WebResearchService.research RPC handler; refusing to deploy dependent Workers.");
 }
 
 const [settingsResponse, versionsResponse] = await Promise.all([
