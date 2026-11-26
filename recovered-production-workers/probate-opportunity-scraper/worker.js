@@ -44,12 +44,11 @@ const length=Number(request.headers.get('content-length')||'0');if(length>8192)r
 let body;try{body=await request.json()}catch{return Response.json({error:'Expected a JSON request body.'},{status:400})}
 const estate=typeof body.estate==='string'?body.estate.trim():'',state=typeof body.state==='string'?body.state.trim():'',county=typeof body.county==='string'?body.county.trim():'',keywords=typeof body.keywords==='string'?body.keywords.trim():'';
 if(!estate||estate.length>120||!STATES.some(s=>s[0]===state)||county.length>120||keywords.length>180)return Response.json({error:'Enter an estate name and a valid state. County and keywords must be 120 and 180 characters or fewer.'},{status:400});
-if(!env.AGENT_STARTER||!env.WEB_RESEARCH_API_TOKEN)return Response.json({error:'Shared public-web research is not configured on this Worker.'},{status:503});
+if(!env.AGENT_STARTER)return Response.json({error:'Shared public-web research is not configured on this Worker.'},{status:503});
 const query=('"'+estate+'" probate estate records property '+county+' '+state+' '+keywords).trim().slice(0,400);
 try{
-const upstream=await env.AGENT_STARTER.fetch(new Request('https://agent-starter/api/internal/web-research',{method:'POST',headers:{'Authorization':'Bearer '+env.WEB_RESEARCH_API_TOKEN,'Content-Type':'application/json','X-Research-Client':request.headers.get('cf-connecting-ip')||'probate-scraper'},body:JSON.stringify({query:query,count:5,readPages:true})}));
-if(!upstream.ok){console.warn('Shared probate research returned HTTP',upstream.status);return Response.json({error:'The public-web research service is temporarily unavailable.'},{status:502});}
-const data=await upstream.json();return Response.json({query:query,sources:Array.isArray(data.sources)?data.sources:[],researchedAt:data.researchedAt,note:data.note},{headers:{'Cache-Control':'no-store'}});
+const data=await env.AGENT_STARTER.research(query,5,true,request.headers.get('cf-connecting-ip')||'probate-scraper');
+return Response.json({query:query,sources:Array.isArray(data.sources)?data.sources:[],researchedAt:data.researchedAt,note:data.note},{headers:{'Cache-Control':'no-store'}});
 }catch(error){console.error('Probate public-web research failed:',error);return Response.json({error:'The public-web research request could not be completed.'},{status:502});}
 }
 if(u.pathname==='/health')return Response.json({ok:true,states:STATES.length,workspace:true,webResearchEnabled:!!(env.AGENT_STARTER&&env.WEB_RESEARCH_API_TOKEN)});
