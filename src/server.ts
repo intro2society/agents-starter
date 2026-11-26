@@ -170,12 +170,20 @@ function createResearchTools(env: Env) {
         );
         searchUrl.searchParams.set("q", query);
         searchUrl.searchParams.set("count", String(count));
-        const response = await fetch(searchUrl, {
-          headers: {
-            Accept: "application/json",
-            "X-Subscription-Token": apiKey
+        const searchHeaders = {
+          Accept: "application/json",
+          "Accept-Encoding": "gzip",
+          "Cache-Control": "no-cache",
+          "X-Subscription-Token": apiKey
+        };
+        let response = await fetch(searchUrl, { headers: searchHeaders });
+        if (response.status === 422 && /["']/u.test(query)) {
+          const fallbackQuery = query.replace(/["']/gu, "").replace(/\s+/gu, " ").trim();
+          if (fallbackQuery && fallbackQuery !== query) {
+            searchUrl.searchParams.set("q", fallbackQuery);
+            response = await fetch(searchUrl, { headers: searchHeaders });
           }
-        });
+        }
         if (!response.ok)
           return `Web search failed with HTTP ${response.status}.`;
         const data = (await response.json()) as {

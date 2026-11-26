@@ -81,13 +81,13 @@ export async function handleFeatureApiRequest(
     const searchUrl = new URL("https://api.search.brave.com/res/v1/web/search");
     searchUrl.searchParams.set(
       "q",
-      `"${decedent}" probate estate records property "${locality}" Virginia`
+      `${decedent} probate estate records property ${locality} Virginia`
     );
     searchUrl.searchParams.set("count", "10");
     searchUrl.searchParams.set("safesearch", "strict");
     try {
       const response = await fetch(searchUrl, {
-        headers: { Accept: "application/json", "X-Subscription-Token": apiKey }
+        headers: { Accept: "application/json", "Accept-Encoding": "gzip", "Cache-Control": "no-cache", "X-Subscription-Token": apiKey }
       });
       if (!response.ok) {
         console.error("Probate public web search failed:", response.status);
@@ -228,7 +228,7 @@ export async function handleFeatureApiRequest(
       searchUrl.searchParams.set("q", `${prompt.trim().slice(0, 300)} visual reference current details`);
       searchUrl.searchParams.set("count", "3");
       const response = await fetch(searchUrl, {
-        headers: { Accept: "application/json", "X-Subscription-Token": apiKey }
+        headers: { Accept: "application/json", "Accept-Encoding": "gzip", "Cache-Control": "no-cache", "X-Subscription-Token": apiKey }
       });
       if (response.ok) {
         const data = (await response.json()) as {
