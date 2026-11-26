@@ -680,8 +680,6 @@ Use the scheduling tool when the user requests a scheduled task.`,
 export default {
   async fetch(request: Request, env: Env) {
     const url = new URL(request.url);
-    const webResearchResponse = await handleWebResearchApi(request, env);
-    if (webResearchResponse) return webResearchResponse;
     if (url.pathname === "/api/health") {
       return Response.json({
         ok: true,
@@ -709,7 +707,7 @@ export default {
         });
       }
       try {
-        const clientIp = request.headers.get("cf-connecting-ip") ?? "unknown";
+        const clientIp = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-research-client") ?? "unknown";
         const { success } = await env.API_RATE_LIMITER.limit({ key: clientIp });
         if (!success) {
           return new Response(
@@ -723,6 +721,8 @@ export default {
         });
       }
     }
+    const webResearchResponse = await handleWebResearchApi(request, env);
+    if (webResearchResponse) return webResearchResponse;
     const featureResponse = await handleFeatureApiRequest(request, env);
     if (featureResponse) return featureResponse;
     return (
