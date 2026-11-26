@@ -660,6 +660,28 @@ Use the scheduling tool when the user requests a scheduled task.`,
             return rows.length ? rows : "No approval requests have been recorded.";
           }
         }),
+        resolveChiefApproval: tool({
+          description: "Record the user's explicit approval or rejection for a previously recorded request. Only use after the user clearly confirms or rejects that exact action in the conversation. This records the decision; it does not execute the action.",
+          inputSchema: z.object({
+            requestId: z.string().min(1).max(100),
+            decision: z.enum(["approved", "rejected"]),
+            userConfirmation: z.string().trim().min(10).max(1000)
+          }),
+          execute: async ({ requestId, decision, userConfirmation }) => {
+            const now = new Date().toISOString();
+            this.sql`
+              UPDATE chief_approval_requests
+              SET status = ${decision},
+                  user_decision = ${userConfirmation},
+                  updated_at = ${now}
+              WHERE id = ${requestId} AND status = "pending"
+            `;
+            const rows = this.sql<{ id: string; status: string }>`
+              SELECT id, status FROM chief_approval_requests WHERE id = ${requestId} LIMIT 1
+            `;
+            return rows[0] ?? { updated: false, message: "Approval request not found." };
+          }
+        }),
         saveLongTermMemory: tool({
           description: "Save a non-sensitive fact or preference to this visitor’s private long-term memory only when the user explicitly asks you to remember it. Requires the optional MEM0_API_KEY secret.",
           inputSchema: z.object({ text: z.string().min(3).max(2000) }),
