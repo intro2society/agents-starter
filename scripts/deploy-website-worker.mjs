@@ -111,8 +111,12 @@ for (const expected of settings.bindings || []) {
       throw new Error(`Main website deployment changed ${expected.name}.${field}; refusing to report success.`);
     }
   }
-  if (expected.type === "ratelimit" && JSON.stringify(actual.simple) !== JSON.stringify(expected.simple)) {
-    throw new Error("Main website deployment changed API_RATE_LIMITER settings.");
+  if (expected.type === "ratelimit") {
+    for (const field of ["limit", "period"]) {
+      if (actual.simple?.[field] !== expected.simple?.[field]) {
+        throw new Error(`Main website deployment changed API_RATE_LIMITER.${field}.`);
+      }
+    }
   }
 }
 
