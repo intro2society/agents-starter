@@ -85,7 +85,7 @@ jobs:
           node -e '
             const body = JSON.parse(process.argv[1]);
             const answer = body.choices?.[0]?.message?.content ?? "";
-            const urls = [...answer.matchAll(/https?:\\/\\/[^\\s)]+/g)].map((match) => match[0]);
+            const urls = [...answer.matchAll(/https?:\/\/[^\s)]+/g)].map((match) => match[0]);
             if (answer.length < 40 || urls.length === 0) {
               console.error("Main website AI chat did not return a usable answer with source URLs.");
               console.error(answer.slice(0, 1000));
