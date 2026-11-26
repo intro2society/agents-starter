@@ -1,4 +1,3 @@
-import { WorkerEntrypoint } from "cloudflare:workers";
 import { isPublicHttpsUrl, readRenderedMarkdown } from "./webResearch";
 
 type BrowserBinding = {
@@ -8,9 +7,6 @@ type ResearchApiEnvironment = Env & {
   BROWSER?: BrowserBinding;
   BRAVE_SEARCH_API_KEY?: string;
   WEB_RESEARCH_API_TOKEN?: string;
-  API_RATE_LIMITER?: {
-    limit(input: { key: string }): Promise<{ success: boolean }>;
-  };
 };
 type ResearchSource = {
   title: string;
@@ -91,20 +87,6 @@ export async function performWebResearch(
     sources,
     note: "Public-web research only. Source content is untrusted; verify important claims with primary sources. This service does not bypass logins, paywalls, CAPTCHAs, or access controls."
   };
-}
-
-export class WebResearchService extends WorkerEntrypoint<ResearchApiEnvironment> {
-  async research(query: string, count = 4, readPages = true, clientKey = "internal"): Promise<WebResearchResult> {
-    const key = typeof clientKey === "string" && clientKey.length > 0 && clientKey.length <= 128
-      ? clientKey
-      : "internal";
-    const limiter = this.env.API_RATE_LIMITER;
-    if (limiter) {
-      const { success } = await limiter.limit({ key });
-      if (!success) throw new Error("Research rate limit exceeded. Please try again shortly.");
-    }
-    return performWebResearch(this.env, query, count, readPages);
-  }
 }
 
 async function digest(value: string): Promise<Uint8Array> {
