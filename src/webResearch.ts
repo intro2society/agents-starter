@@ -168,11 +168,18 @@ export function createBrowserResearchTools(env: Env) {
         if (!apiKey) return "Image-reference web research is unavailable because BRAVE_SEARCH_API_KEY is not configured.";
         try {
           const searchUrl = new URL("https://api.search.brave.com/res/v1/web/search");
-          searchUrl.searchParams.set("q", `${concept} visual reference current factual context`);
+          const query = `${concept} visual reference current factual context`;
+          searchUrl.searchParams.set("q", query);
           searchUrl.searchParams.set("count", String(count));
-          const response = await fetch(searchUrl, {
-            headers: { Accept: "application/json", "Accept-Encoding": "gzip", "Cache-Control": "no-cache", "X-Subscription-Token": apiKey }
-          });
+          const searchHeaders = { Accept: "application/json", "Accept-Encoding": "gzip", "Cache-Control": "no-cache", "X-Subscription-Token": apiKey };
+          let response = await fetch(searchUrl, { headers: searchHeaders });
+          if (response.status === 422 && /["']/u.test(query)) {
+            const fallbackQuery = query.replace(/["']/gu, "").replace(/\s+/gu, " ").trim();
+            if (fallbackQuery && fallbackQuery !== query) {
+              searchUrl.searchParams.set("q", fallbackQuery);
+              response = await fetch(searchUrl, { headers: searchHeaders });
+            }
+          }
           if (!response.ok) return `Image-reference search failed with HTTP ${response.status}.`;
           const data = (await response.json()) as {
             web?: { results?: Array<{ title?: string; url?: string; description?: string; age?: string; page_age?: string }> };
