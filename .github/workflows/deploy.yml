@@ -95,6 +95,8 @@ jobs:
       - name: Smoke test nationwide probate public-web research
         if: steps.credentials.outputs.available == 'true'
         run: |
+          page="$(curl --fail --silent --show-error --max-time 30 https://scraper.theintro2society.org/)"
+          echo "$page" | grep -q "Search current public probate sources"
           payload='{"estate":"Virginia probate court","state":"Virginia","county":"Richmond City","keywords":"official case search public records"}'
           response="$(curl --fail --silent --show-error --max-time 120 -H 'Content-Type: application/json' --data "$payload" https://scraper.theintro2society.org/api/research)"
           node -e '
