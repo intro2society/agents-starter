@@ -81,7 +81,7 @@ export async function handleFeatureApiRequest(
     const searchUrl = new URL("https://api.search.brave.com/res/v1/web/search");
     searchUrl.searchParams.set(
       "q",
-      `"${decedent}" probate estate records property "${locality}" Virginia`
+      `${decedent} probate estate records property ${locality} Virginia`
     );
     searchUrl.searchParams.set("count", "10");
     searchUrl.searchParams.set("safesearch", "strict");
