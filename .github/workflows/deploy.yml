@@ -61,6 +61,14 @@ jobs:
           accountId: "6d121e7041ead643e98f3562a9866c0a"
           command: deploy --config wrangler.hub.jsonc
 
+      - name: Deploy nationwide probate research Worker
+        if: steps.credentials.outputs.available == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: "6d121e7041ead643e98f3562a9866c0a"
+          command: deploy --config wrangler.scraper.jsonc
+
       - name: Verify production service hub and all downstream Workers
         if: steps.credentials.outputs.available == 'true'
         run: |
@@ -75,6 +83,23 @@ jobs:
               process.exit(1);
             }
             console.log("All four production services returned HTTP 200.");
+          ' "$response"
+
+      - name: Smoke test nationwide probate public-web research
+        if: steps.credentials.outputs.available == 'true'
+        run: |
+          payload='{"estate":"Example Estate","state":"Virginia","county":"Richmond City","keywords":"probate public records"}'
+          response="$(curl --fail --silent --show-error --max-time 120 -H 'Content-Type: application/json' --data "$payload" https://scraper.theintro2society.org/api/research)"
+          node -e '
+            const body = JSON.parse(process.argv[1]);
+            const sources = Array.isArray(body.sources) ? body.sources : [];
+            const urls = sources.filter((source) => typeof source.url === "string" && source.url.startsWith("https://"));
+            if (urls.length === 0) {
+              console.error("Nationwide probate research returned no usable public-web sources.");
+              console.error(JSON.stringify(body).slice(0, 1000));
+              process.exit(1);
+            }
+            console.log("Nationwide probate research returned", urls.length, "public-web source(s).");
           ' "$response"
 
       - name: Smoke test main website AI chat with live web sources
