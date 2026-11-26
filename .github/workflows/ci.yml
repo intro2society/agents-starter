@@ -59,6 +59,9 @@ jobs:
       - name: Validate service hub Wrangler configuration
         run: npx wrangler deploy --dry-run --config wrangler.hub.jsonc
 
+      - name: Validate nationwide probate scraper Wrangler configuration
+        run: npx wrangler deploy --dry-run --config wrangler.scraper.jsonc
+
       - name: Test internal service hub routing
         run: node --test workers/service-hub/worker.test.js
 
