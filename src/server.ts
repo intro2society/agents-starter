@@ -1,4 +1,5 @@
 import { createWorkersAI } from "workers-ai-provider";
+import { WorkerEntrypoint } from "cloudflare:workers";
 import { callable, routeAgentRequest, type Schedule } from "agents";
 import { getSchedulePrompt, scheduleSchema } from "agents/schedule";
 import { AIChatAgent, type OnChatMessageOptions } from "@cloudflare/ai-chat";
@@ -19,8 +20,39 @@ import {
 import { addMem0Memory, searchMem0Memory } from "./mem0Memory";
 import { fetchProbateDirectory } from "./probateDirectory";
 import { createBrowserResearchTools } from "./webResearch";
-import { handleWebResearchApi } from "./webResearchApi";
-export { WebResearchService } from "./webResearchApi";
+import { handleWebResearchApi, performWebResearch } from "./webResearchApi";
+
+type ResearchRpcEnvironment = Env & {
+  API_RATE_LIMITER?: {
+    limit(input: { key: string }): Promise<{ success: boolean }>;
+  };
+};
+
+export class WebResearchService extends WorkerEntrypoint<ResearchRpcEnvironment> {
+  async fetch() {
+    return new Response(null, { status: 404 });
+  }
+
+  async research(
+    query: string,
+    count = 4,
+    readPages = true,
+    clientKey = "internal"
+  ) {
+    const key =
+      typeof clientKey === "string" && clientKey.length > 0 && clientKey.length <= 128
+        ? clientKey
+        : "internal";
+    const limiter = this.env.API_RATE_LIMITER;
+    if (limiter) {
+      const { success } = await limiter.limit({ key });
+      if (!success) {
+        throw new Error("Research rate limit exceeded. Please try again shortly.");
+      }
+    }
+    return performWebResearch(this.env, query, count, readPages);
+  }
+}
 
 type ResearchEnvironment = Env & { BRAVE_SEARCH_API_KEY?: string };
 type ServiceHubEnvironment = Env & { INTRO2SOCIETY_HUB?: Fetcher };
