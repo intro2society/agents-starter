@@ -45,7 +45,7 @@ let body;try{body=JSON.parse(rawBody)}catch{return Response.json({error:'Expecte
 const estate=typeof body.estate==='string'?body.estate.trim():'',state=typeof body.state==='string'?body.state.trim():'',county=typeof body.county==='string'?body.county.trim():'',keywords=typeof body.keywords==='string'?body.keywords.trim():'';
 if(!estate||estate.length>120||!STATES.some(s=>s[0]===state)||county.length>120||keywords.length>180)return Response.json({error:'Enter an estate name and a valid state. County and keywords must be 120 and 180 characters or fewer.'},{status:400});
 if(!env.AGENT_STARTER)return Response.json({error:'Shared public-web research is not configured on this Worker.'},{status:503});
-const query=('"'+estate+'" probate estate records property '+county+' '+state+' '+keywords).trim().slice(0,400);
+const query=(estate+' probate estate records property '+county+' '+state+' '+keywords).trim().slice(0,400);
 try{
 const visitorIp=request.headers.get('cf-connecting-ip')||'unknown';const data=await env.AGENT_STARTER.research(query,5,true,'probate-scraper:'+visitorIp);
 return Response.json({query:query,sources:Array.isArray(data.sources)?data.sources:[],researchedAt:data.researchedAt,note:data.note},{headers:{'Cache-Control':'no-store'}});
