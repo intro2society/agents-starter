@@ -62,7 +62,7 @@ export async function handleWebResearchApi(request: Request, env: Env): Promise<
     const data = await response.json() as {
       web?: { results?: Array<{ title?: string; url?: string; description?: string; age?: string; page_age?: string }> };
     };
-    const sources = (data.web?.results ?? []).flatMap(item => {
+    const sources: Array<{ title: string; url: string; description: string; date: string | null; pageExcerpt?: string }> = (data.web?.results ?? []).flatMap(item => {
       const target = item.url ? isPublicHttpsUrl(item.url) : null;
       return target ? [{
         title: item.title || "Untitled source",
