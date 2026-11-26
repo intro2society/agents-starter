@@ -51,7 +51,7 @@ const data=await env.AGENT_STARTER.research(query,5,true,request.headers.get('cf
 return Response.json({query:query,sources:Array.isArray(data.sources)?data.sources:[],researchedAt:data.researchedAt,note:data.note},{headers:{'Cache-Control':'no-store'}});
 }catch(error){console.error('Probate public-web research failed:',error);return Response.json({error:'The public-web research request could not be completed.'},{status:502});}
 }
-if(u.pathname==='/health')return Response.json({ok:true,states:STATES.length,workspace:true,webResearchEnabled:!!(env.AGENT_STARTER&&env.WEB_RESEARCH_API_TOKEN)});
+if(u.pathname==='/health')return Response.json({ok:true,states:STATES.length,workspace:true,webResearchEnabled:!!env.AGENT_STARTER});
 if(u.pathname==='/api/states')return Response.json(STATES.map(s=>({state:s[0],code:s[1],officialCourt:s[2]})));
 if(u.pathname==='/api/status')return Response.json({states:50,officialCourtStartingPoints:50,manualResearch:true,automaticCaseHarvesting:false,webResearchEnabled:!!(env.AGENT_STARTER&&env.WEB_RESEARCH_API_TOKEN)});
 return new Response(renderPage(),{headers:{'Content-Type':'text/html;charset=utf-8','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','Cache-Control':'no-store'}})}};
