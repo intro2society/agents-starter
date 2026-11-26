@@ -19,6 +19,7 @@ import {
 import { addMem0Memory, searchMem0Memory } from "./mem0Memory";
 import { fetchProbateDirectory } from "./probateDirectory";
 import { createBrowserResearchTools } from "./webResearch";
+import { handleWebResearchApi } from "./webResearchApi";
 
 type ResearchEnvironment = Env & { BRAVE_SEARCH_API_KEY?: string };
 type ServiceHubEnvironment = Env & { INTRO2SOCIETY_HUB?: Fetcher };
@@ -679,6 +680,8 @@ Use the scheduling tool when the user requests a scheduled task.`,
 export default {
   async fetch(request: Request, env: Env) {
     const url = new URL(request.url);
+    const webResearchResponse = await handleWebResearchApi(request, env);
+    if (webResearchResponse) return webResearchResponse;
     if (url.pathname === "/api/health") {
       return Response.json({
         ok: true,
