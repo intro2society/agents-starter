@@ -20,6 +20,7 @@ import { addMem0Memory, searchMem0Memory } from "./mem0Memory";
 import { fetchProbateDirectory } from "./probateDirectory";
 import { createBrowserResearchTools } from "./webResearch";
 import { handleWebResearchApi } from "./webResearchApi";
+export { WebResearchService } from "./webResearchApi";
 
 type ResearchEnvironment = Env & { BRAVE_SEARCH_API_KEY?: string };
 type ServiceHubEnvironment = Env & { INTRO2SOCIETY_HUB?: Fetcher };

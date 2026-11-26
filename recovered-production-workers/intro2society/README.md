@@ -1,26 +1,22 @@
 # Recovered production Worker source
 
-This folder preserves the deployed source of the `intro2society` main website Worker as retrieved from the Cloudflare account on 2026-11-25.
+This folder preserves the source snapshot of the `intro2society` main website Worker retrieved from Cloudflare on 2026-11-25. The reviewed source has since been extended with the shared public-web research integration.
 
-- `worker.js` is a source snapshot of the currently deployed Worker script.
-- This is a recovery copy, not yet a Wrangler-managed production project.
-- It intentionally does not include secret values.
-- Do not deploy this file directly without first reconciling its current Cloudflare bindings, Durable Object namespaces, workflows, KV namespaces, rate limits, compatibility settings, and production routes.
-- Future changes should be reviewed against this snapshot and tested on a separate Worker before production deployment.
+- `worker.js` is the reviewed website Worker source used by the deployment script.
+- The Worker is still deployed through a guarded Cloudflare API upload rather than a standalone Wrangler project.
+- The deployment script reads the live Worker settings and current version exports, preserves existing bindings and Durable Object exports, and adds the named research entrypoint to the existing `AGENT_STARTER` service binding.
+- It keeps secret and workflow bindings from the previous version; it does not read or print secret values.
+- Do not replace this script with a blind upload. Preserve the existing Durable Object namespaces, workflow binding, KV namespace, AI binding, rate limiter, compatibility settings, observability, and routes.
 
-The snapshot is kept in Git so the production Worker can be managed safely through reviewed changes rather than blind replacement.
+## Shared public-web research
 
-## Optional shared public-web research integration
+The website chat and image-generation routes call the private `WebResearchService` RPC entrypoint on `agent-starter` through the `AGENT_STARTER` service binding.
 
-The website Worker source now has an optional integration with the deployed `agent-starter` research API.
+Production requirements:
+- `agent-starter` exports the named `WebResearchService` WorkerEntrypoint.
+- `intro2society` binds `AGENT_STARTER` to service `agent-starter` with entrypoint `WebResearchService`.
+- The agent Worker has its Brave Search key and Browser Run binding configured.
 
-Before deploying this integration, configure all three items:
+The main website does not need the research bearer token for this RPC path. The legacy authenticated HTTP research endpoint and secret are retained for compatibility. No secret is sent to the browser.
 
-1. On `agent-starter`, add the Worker secret `WEB_RESEARCH_API_TOKEN`.
-2. On `intro2society`, add the exact same secret value under the same name.
-3. Add a service binding to the `intro2society` Worker:
-   - Variable name: `AGENT_STARTER`
-   - Service: `agent-starter`
-   - Environment: `production`
-
-Keep the token secret. Never put it in frontend JavaScript, source code, GitHub files, or chat messages. Without these settings, the website falls back to its existing chat and image-generation behavior.
+The deployment workflow deploys the agent Worker before updating the website Worker, then smoke-tests live chat and image generation. Public-web results are research references, not verified facts; page content is untrusted and access controls are not bypassed.

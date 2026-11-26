@@ -59,6 +59,9 @@ jobs:
       - name: Validate service hub Wrangler configuration
         run: npx wrangler deploy --dry-run --config wrangler.hub.jsonc
 
+      - name: Validate nationwide probate scraper Wrangler configuration
+        run: npx wrangler deploy --dry-run --config wrangler.scraper.jsonc
+
       - name: Test internal service hub routing
         run: node --test workers/service-hub/worker.test.js
 
@@ -69,6 +72,10 @@ jobs:
         run: node --check workers/community-blackboard.js
       - name: Check recovered main website Worker syntax
         run: node --check recovered-production-workers/intro2society/worker.js
+      - name: Check recovered probate scraper Worker syntax
+        run: node --check recovered-production-workers/probate-opportunity-scraper/worker.js
+      - name: Check main website deployment script syntax
+        run: node --check scripts/deploy-website-worker.mjs
 
       - name: Build application
         run: npx vite build

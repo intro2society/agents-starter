@@ -53,6 +53,13 @@ jobs:
           accountId: "6d121e7041ead643e98f3562a9866c0a"
           command: deploy
 
+      - name: Deploy main website Worker with private research RPC
+        if: steps.credentials.outputs.available == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: "6d121e7041ead643e98f3562a9866c0a"
+        run: node scripts/deploy-website-worker.mjs
+
       - name: Deploy internal service hub
         if: steps.credentials.outputs.available == 'true'
         uses: cloudflare/wrangler-action@v3
@@ -60,6 +67,14 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: "6d121e7041ead643e98f3562a9866c0a"
           command: deploy --config wrangler.hub.jsonc
+
+      - name: Deploy nationwide probate research Worker
+        if: steps.credentials.outputs.available == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: "6d121e7041ead643e98f3562a9866c0a"
+          command: deploy --config wrangler.scraper.jsonc
 
       - name: Verify production service hub and all downstream Workers
         if: steps.credentials.outputs.available == 'true'
@@ -77,6 +92,25 @@ jobs:
             console.log("All four production services returned HTTP 200.");
           ' "$response"
 
+      - name: Smoke test nationwide probate public-web research
+        if: steps.credentials.outputs.available == 'true'
+        run: |
+          page="$(curl --fail --silent --show-error --max-time 30 https://scraper.theintro2society.org/)"
+          echo "$page" | grep -q "Search current public probate sources"
+          payload='{"estate":"Virginia probate court","state":"Virginia","county":"Richmond City","keywords":"official case search public records"}'
+          response="$(curl --fail --silent --show-error --max-time 120 -H 'Content-Type: application/json' --data "$payload" https://scraper.theintro2society.org/api/research)"
+          node -e '
+            const body = JSON.parse(process.argv[1]);
+            const sources = Array.isArray(body.sources) ? body.sources : [];
+            const urls = sources.filter((source) => typeof source.url === "string" && source.url.startsWith("https://"));
+            if (urls.length === 0) {
+              console.error("Nationwide probate research returned no usable public-web sources.");
+              console.error(JSON.stringify(body).slice(0, 1000));
+              process.exit(1);
+            }
+            console.log("Nationwide probate research returned", urls.length, "public-web source(s).");
+          ' "$response"
+
       - name: Smoke test main website AI chat with live web sources
         if: steps.credentials.outputs.available == 'true'
         run: |
@@ -92,4 +126,30 @@ jobs:
               process.exit(1);
             }
             console.log("Main website AI chat returned a response with source URLs:", urls.slice(0, 3));
+          ' "$response"
+
+      - name: Smoke test main website image generation with live web references
+        if: steps.credentials.outputs.available == 'true'
+        run: |
+          payload='{"model":"flux","stream":false,"messages":[{"role":"user","content":"Create a clean square editorial icon of a magnifying glass over a small globe, white background, crisp vector-like style."}]}'
+          response="$(curl --fail --silent --show-error --max-time 180 -H 'Content-Type: application/json' --data "$payload" https://theintro2society.org/v1/chat/completions)"
+          node -e '
+            const body = JSON.parse(process.argv[1]);
+            const content = body.choices?.[0]?.message?.content ?? "";
+            const match = content.match(/!\[Image\]\((https:\/\/[^)]+)\)/);
+            if (!match) {
+              console.error("Main website image generation did not return an image URL.");
+              console.error(content.slice(0, 1000));
+              process.exit(1);
+            }
+            fetch(match[1]).then((image) => {
+              if (!image.ok || !image.headers.get("content-type")?.startsWith("image/")) {
+                console.error("Generated image could not be retrieved:", image.status);
+                process.exit(1);
+              }
+              console.log("Main website image generation returned a retrievable image:", image.status, image.headers.get("content-type"));
+            }).catch((error) => {
+              console.error("Generated image retrieval failed:", error);
+              process.exit(1);
+            });
           ' "$response"

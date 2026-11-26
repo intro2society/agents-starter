@@ -110,32 +110,45 @@ export async function handleFeatureApiRequest(
       const results = (data.web?.results ?? [])
         .flatMap((item) => {
           if (!item.url || !item.title) return [];
-          try {
-            const url = new URL(item.url);
-            if (url.protocol !== "https:") return [];
-            const host = url.hostname.toLowerCase();
-            const official =
-              host === "vacourts.gov" ||
-              host.endsWith(".vacourts.gov") ||
-              host === "virginia.gov" ||
-              host.endsWith(".virginia.gov") ||
-              host.endsWith(".gov");
-            return [
-              {
-                title: item.title.slice(0, 240),
-                url: url.toString(),
-                description: (item.description ?? "").slice(0, 700),
-                date: item.age ?? item.page_age ?? null,
-                sourceType: official
-                  ? "Government domain — verify the specific record"
-                  : "Other public web source — independent verification required"
-              }
-            ];
-          } catch {
-            return [];
-          }
+          const target = isPublicHttpsUrl(item.url);
+          if (!target) return [];
+          const host = target.hostname.toLowerCase();
+          const official =
+            host === "vacourts.gov" ||
+            host.endsWith(".vacourts.gov") ||
+            host === "virginia.gov" ||
+            host.endsWith(".virginia.gov") ||
+            host.endsWith(".gov");
+          return [
+            {
+              title: item.title.slice(0, 240),
+              url: target.toString(),
+              description: (item.description ?? "").slice(0, 700),
+              date: item.age ?? item.page_age ?? null,
+              sourceType: official
+                ? "Government domain — verify the specific record"
+                : "Other public web source — independent verification required"
+            }
+          ];
         })
         .slice(0, 10);
+      const browser = (env as Env & {
+        BROWSER?: {
+          quickAction(action: "markdown", options: { url: string }): Promise<Response>;
+        };
+      }).BROWSER;
+      if (browser) {
+        for (const item of results.slice(0, 2)) {
+          try {
+            const excerpt = await readRenderedMarkdown(browser, item.url);
+            if (excerpt) {
+              item.description = `${item.description}\n\nRendered public-page excerpt: ${excerpt.slice(0, 1200)}`;
+            }
+          } catch (error) {
+            console.warn("Probate source page could not be rendered:", error);
+          }
+        }
+      }
       return Response.json(
         {
           results,
