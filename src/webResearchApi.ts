@@ -43,11 +43,15 @@ export async function performWebResearch(
   const response = await fetch(searchUrl, {
     headers: {
       Accept: "application/json",
+      "Cache-Control": "no-cache",
       "X-Subscription-Token": apiEnv.BRAVE_SEARCH_API_KEY
     }
   });
   if (!response.ok) {
-    throw new Error(`Web search provider returned HTTP ${response.status}`);
+    const providerDetail = (await response.text()).slice(0, 300);
+    throw new Error(
+      `Web search provider returned HTTP ${response.status}${providerDetail ? `: ${providerDetail}` : ""}`
+    );
   }
   const data = await response.json() as {
     web?: {
