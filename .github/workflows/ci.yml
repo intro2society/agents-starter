@@ -67,6 +67,8 @@ jobs:
 
       - name: Check community blackboard Worker syntax
         run: node --check workers/community-blackboard.js
+      - name: Check recovered main website Worker syntax
+        run: node --check recovered-production-workers/intro2society/worker.js
 
       - name: Build application
         run: npx vite build
