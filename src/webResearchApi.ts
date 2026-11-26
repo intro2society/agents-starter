@@ -40,14 +40,23 @@ export async function performWebResearch(
   const searchUrl = new URL("https://api.search.brave.com/res/v1/web/search");
   searchUrl.searchParams.set("q", query);
   searchUrl.searchParams.set("count", String(count));
-  const response = await fetch(searchUrl, {
-    headers: {
-      Accept: "application/json",
-      "X-Subscription-Token": apiEnv.BRAVE_SEARCH_API_KEY
+  const searchHeaders = {
+    Accept: "application/json",
+    "X-Subscription-Token": apiEnv.BRAVE_SEARCH_API_KEY
+  };
+  let response = await fetch(searchUrl, { headers: searchHeaders });
+  if (response.status === 422 && /["']/u.test(query)) {
+    const fallbackQuery = query.replace(/["']/gu, "").replace(/\\s+/gu, " ").trim();
+    if (fallbackQuery && fallbackQuery !== query) {
+      searchUrl.searchParams.set("q", fallbackQuery);
+      response = await fetch(searchUrl, { headers: searchHeaders });
     }
-  });
+  }
   if (!response.ok) {
-    throw new Error(`Web search provider returned HTTP ${response.status}`);
+    const providerDetail = (await response.text()).replace(/\\s+/gu, " ").slice(0, 160);
+    throw new Error(
+      `Web search provider returned HTTP ${response.status}${providerDetail ? `: ${providerDetail}` : ""}`
+    );
   }
   const data = await response.json() as {
     web?: {
