@@ -1,0 +1,98 @@
+import { readFile } from "node:fs/promises";
+
+const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+const scriptName = "intro2society";
+
+if (!accountId || !apiToken) {
+  throw new Error("CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN are required.");
+}
+
+const apiBase = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`;
+
+async function api(path, init = {}) {
+  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${apiToken}`,
+      ...(init.headers || {})
+    }
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.success !== true) {
+    throw new Error(`Cloudflare API ${response.status}: ${JSON.stringify(payload.errors || payload).slice(0, 1600)}`);
+  }
+  return payload;
+}
+
+const [settingsResponse, versionsResponse] = await Promise.all([
+  api(`/workers/scripts/${scriptName}/settings`),
+  api(`/workers/scripts/${scriptName}/versions`)
+]);
+const settings = settingsResponse.result;
+const latestVersion = (versionsResponse.result?.items || [])[0];
+if (!latestVersion?.id) {
+  throw new Error("Could not find the current main website Worker version.");
+}
+
+const versionResponse = await api(`/workers/scripts/${scriptName}/versions/${latestVersion.id}`);
+const exports = versionResponse.result?.resources?.script_runtime?.exports;
+if (!exports || typeof exports !== "object") {
+  throw new Error("Could not read existing Durable Object and Worker exports; refusing to deploy.");
+}
+
+const bindings = (settings.bindings || [])
+  .filter((binding) => !["secret_text", "workflow"].includes(binding.type))
+  .map((binding) => {
+    if (binding.name === "AGENT_STARTER" && binding.type === "service") {
+      return { ...binding, entrypoint: "WebResearchService" };
+    }
+    return binding;
+  });
+if (!bindings.some((binding) => binding.name === "AGENT_STARTER" && binding.entrypoint === "WebResearchService")) {
+  throw new Error("The existing AGENT_STARTER service binding was not found; refusing to deploy.");
+}
+
+const metadata = {
+  main_module: "worker.js",
+  compatibility_date: settings.compatibility_date,
+  compatibility_flags: settings.compatibility_flags || [],
+  usage_model: settings.usage_model,
+  observability: settings.observability,
+  logpush: settings.logpush,
+  tags: settings.tags,
+  tail_consumers: settings.tail_consumers,
+  placement: settings.placement,
+  bindings,
+  keep_bindings: ["secret_text", "workflow"],
+  exports,
+  annotations: {
+    "workers/message": "Use private WebResearchService RPC for current website chat and image research"
+  }
+};
+
+const source = await readFile("recovered-production-workers/intro2society/worker.js", "utf8");
+if (!source.includes("env.AGENT_STARTER.research")) {
+  throw new Error("Website Worker source does not contain the reviewed research RPC integration.");
+}
+
+const form = new FormData();
+form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+form.append("worker.js", new Blob([source], { type: "application/javascript+module" }), "worker.js");
+
+await api(`/workers/scripts/${scriptName}`, { method: "PUT", body: form });
+
+const verify = await api(`/workers/scripts/${scriptName}/settings`);
+const binding = (verify.result.bindings || []).find((item) => item.name === "AGENT_STARTER");
+if (binding?.entrypoint !== "WebResearchService") {
+  throw new Error("Main website deployment did not retain the WebResearchService RPC binding.");
+}
+
+const deployments = await api(`/workers/scripts/${scriptName}/deployments`);
+const deployment = deployments.result?.deployments?.[0];
+console.log("Main website Worker deployed with private research RPC.", {
+  deploymentId: deployment?.id || null,
+  entrypoint: binding.entrypoint,
+  preservedBindings: (verify.result.bindings || []).map((item) => item.name),
+  preservedExports: Object.keys(exports)
+});
