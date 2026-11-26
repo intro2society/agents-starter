@@ -95,7 +95,7 @@ jobs:
       - name: Smoke test nationwide probate public-web research
         if: steps.credentials.outputs.available == 'true'
         run: |
-          payload='{"estate":"Example Estate","state":"Virginia","county":"Richmond City","keywords":"probate public records"}'
+          payload='{"estate":"Virginia probate court","state":"Virginia","county":"Richmond City","keywords":"official case search public records"}'
           response="$(curl --fail --silent --show-error --max-time 120 -H 'Content-Type: application/json' --data "$payload" https://scraper.theintro2society.org/api/research)"
           node -e '
             const body = JSON.parse(process.argv[1]);
