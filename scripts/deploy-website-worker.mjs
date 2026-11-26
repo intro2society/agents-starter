@@ -23,6 +23,17 @@ async function api(path, init = {}) {
   return payload;
 }
 
+const agentVersionsResponse = await api("/workers/scripts/agent-starter/versions");
+const latestAgentVersion = (agentVersionsResponse.result?.items || [])[0];
+if (!latestAgentVersion?.id) {
+  throw new Error("Could not find the deployed agent-starter Worker version.");
+}
+const agentVersionResponse = await api(`/workers/scripts/agent-starter/versions/${latestAgentVersion.id}`);
+const rpcExport = agentVersionResponse.result?.resources?.script_runtime?.exports?.WebResearchService;
+if (rpcExport?.type !== "worker") {
+  throw new Error("agent-starter did not publish the WebResearchService RPC entrypoint; refusing to deploy dependent Workers.");
+}
+
 const [settingsResponse, versionsResponse] = await Promise.all([
   api(`/workers/scripts/${scriptName}/settings`),
   api(`/workers/scripts/${scriptName}/versions`)
