@@ -11,9 +11,11 @@ function pp(c){let p=c,s=SM['1:1'];const m=c.match(/\b(1:1|1:2|3:2|3:4|16:9|9:16
 function bt(o,op,s,u){return['Original prompt: '+o,'Optimized prompt: '+op,'Size: '+s.w+'x'+s.h,'Image generated!','![Image]('+u+')'].join('\n');}
 function sc(i,mo,d,fr){return'data: '+JSON.stringify({id:i,object:'chat.completion.chunk',created:Math.floor(Date.now()/1000),model:mo,choices:[{index:0,delta:d,finish_reason:fr||null}]})+'\n\n';}
 async function webResearchContext(env,query,count=4,clientIp=''){
-if(!env.AGENT_STARTER||!query)return'';
+if(!env.AGENT_STARTER||!env.WEB_RESEARCH_API_TOKEN||!query)return'';
 try{
-const data=await env.AGENT_STARTER.research(String(query).slice(0,400),count,true,clientIp||'website');
+const response=await env.AGENT_STARTER.fetch(new Request('https://agent-starter/api/internal/web-research',{method:'POST',headers:{'Authorization':'Bearer '+env.WEB_RESEARCH_API_TOKEN,'Content-Type':'application/json','X-Research-Client':clientIp},body:JSON.stringify({query:String(query).slice(0,400),count:count,readPages:true})}));
+if(!response.ok)return'';
+const data=await response.json();
 if(!Array.isArray(data.sources)||!data.sources.length)return'';
 return data.sources.map((source,index)=>[
 'Source '+(index+1)+': '+(source.title||'Untitled'),
