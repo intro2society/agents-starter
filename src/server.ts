@@ -707,7 +707,7 @@ export default {
         });
       }
       try {
-        const clientIp = request.headers.get("cf-connecting-ip") ?? "unknown";
+        const clientIp = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-research-client") ?? "unknown";
         const { success } = await env.API_RATE_LIMITER.limit({ key: clientIp });
         if (!success) {
           return new Response(
