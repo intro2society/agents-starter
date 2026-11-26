@@ -171,7 +171,7 @@ export function createBrowserResearchTools(env: Env) {
           searchUrl.searchParams.set("q", `${concept} visual reference current factual context`);
           searchUrl.searchParams.set("count", String(count));
           const response = await fetch(searchUrl, {
-            headers: { Accept: "application/json", "Cache-Control": "no-cache", "X-Subscription-Token": apiKey }
+            headers: { Accept: "application/json", "Accept-Encoding": "gzip", "Cache-Control": "no-cache", "X-Subscription-Token": apiKey }
           });
           if (!response.ok) return `Image-reference search failed with HTTP ${response.status}.`;
           const data = (await response.json()) as {
