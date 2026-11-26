@@ -173,6 +173,7 @@ function createResearchTools(env: Env) {
         const response = await fetch(searchUrl, {
           headers: {
             Accept: "application/json",
+            "Accept-Encoding": "gzip",
             "Cache-Control": "no-cache",
             "X-Subscription-Token": apiKey
           }
