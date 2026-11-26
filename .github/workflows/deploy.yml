@@ -76,3 +76,20 @@ jobs:
             }
             console.log("All four production services returned HTTP 200.");
           ' "$response"
+
+      - name: Smoke test main website AI chat with live web sources
+        if: steps.credentials.outputs.available == 'true'
+        run: |
+          payload='{"messages":[{"role":"user","content":"Find current official Cloudflare Browser Run or Browser Rendering documentation. Explain what it does briefly and include direct source URLs."}]}'
+          response="$(curl --fail --silent --show-error --max-time 120 -H 'Content-Type: application/json' --data "$payload" https://theintro2society.org/api/chat)"
+          node -e '
+            const body = JSON.parse(process.argv[1]);
+            const answer = body.choices?.[0]?.message?.content ?? "";
+            const urls = [...answer.matchAll(/https?:\/\/[^\s)]+/g)].map((match) => match[0]);
+            if (answer.length < 40 || urls.length === 0) {
+              console.error("Main website AI chat did not return a usable answer with source URLs.");
+              console.error(answer.slice(0, 1000));
+              process.exit(1);
+            }
+            console.log("Main website AI chat returned a response with source URLs:", urls.slice(0, 3));
+          ' "$response"
