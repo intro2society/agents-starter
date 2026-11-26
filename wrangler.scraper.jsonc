@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "probate-opportunity-scraper",
+  "main": "recovered-production-workers/probate-opportunity-scraper/worker.js",
+  "compatibility_date": "2026-11-21",
+  "workers_dev": false,
+  "kv_namespaces": [
+    {
+      "binding": "DATA",
+      "id": "1d0cf74ddc8c4d9c8253133c410fd421"
+    }
+  ],
+  "services": [
+    {
+      "binding": "AGENT_STARTER",
+      "service": "agent-starter"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": false,
+      "head_sampling_rate": 1
+    },
+    "redact_query_string": true
+  },
+  "account_id": "6d121e7041ead643e98f3562a9866c0a"
+}
