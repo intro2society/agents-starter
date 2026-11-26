@@ -13,7 +13,7 @@ function sc(i,mo,d,fr){return'data: '+JSON.stringify({id:i,object:'chat.completi
 async function webResearchContext(env,query,count=4,clientIp=''){
 if(!env.AGENT_STARTER||!query)return'';
 try{
-const data=await env.AGENT_STARTER.research(String(query).slice(0,400),count,true,clientIp||'website');
+const data=await env.AGENT_STARTER.research(String(query).slice(0,400),count,true,clientIp?'website:'+clientIp:'website');
 if(!Array.isArray(data.sources)||!data.sources.length)return'';
 return data.sources.map((source,index)=>[
 'Source '+(index+1)+': '+(source.title||'Untitled'),
