@@ -21,6 +21,7 @@ import { addMem0Memory, searchMem0Memory } from "./mem0Memory";
 import { fetchProbateDirectory } from "./probateDirectory";
 import { crawlRenderedWebsite, createBrowserResearchTools, type BrowserBinding } from "./webResearch";
 import { handleWebResearchApi, performWebResearch } from "./webResearchApi";
+import { CHIEF_OF_STAFF_SYSTEM_PROMPT } from "./chiefOfStaff";
 
 type ResearchRpcEnvironment = Env & {
   API_RATE_LIMITER?: {
@@ -376,6 +377,43 @@ export class ChatAgent extends AIChatAgent<Env> {
       )
     `;
 
+    this.sql`
+      CREATE TABLE IF NOT EXISTS chief_tasks (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        objective TEXT NOT NULL,
+        owner_role TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'planned',
+        approval_required INTEGER NOT NULL DEFAULT 0,
+        notes TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `;
+
+    this.sql`
+      CREATE INDEX IF NOT EXISTS idx_chief_tasks_updated
+      ON chief_tasks(updated_at DESC)
+    `;
+
+    this.sql`
+      CREATE TABLE IF NOT EXISTS chief_approval_requests (
+        id TEXT PRIMARY KEY,
+        action TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        impact TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        user_decision TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `;
+
+    this.sql`
+      CREATE INDEX IF NOT EXISTS idx_chief_approvals_status
+      ON chief_approval_requests(status, created_at DESC)
+    `;
+
     this.mcp.configureOAuthCallback({
       customHandler: (result) => {
         if (result.authSuccess) {
@@ -462,7 +500,7 @@ export class ChatAgent extends AIChatAgent<Env> {
       model: workersai(chatModel, {
         sessionAffinity: this.sessionAffinity
       }),
-      system: `You are an autonomous business opportunity research and planning assistant.
+      system: `You are an autonomous business opportunity research and planning assistant.\n\n${CHIEF_OF_STAFF_SYSTEM_PROMPT}\n\n
 
 Your mission is to discover, evaluate, compare, and organize practical business opportunities across industries. Research public information using web search, rendered page reading, bounded same-origin website crawling, image-reference research, and connected MCP tools when useful.
 
@@ -495,6 +533,155 @@ Use the scheduling tool when the user requests a scheduled task.`,
         ...researchTools,
         ...browserResearchTools,
         ...mcpTools,
+        checkPlatformServices: tool({
+          description: "Run a read-only health check through the existing Intro2Society service hub. Checks the connected AI agent, probate portal, community blackboard, and probate scraper. Use before reporting platform status.",
+          inputSchema: z.object({}),
+          execute: async () => {
+            const hub = (this.env as ServiceHubEnvironment).INTRO2SOCIETY_HUB;
+            if (!hub) return { ok: false, error: "The internal service-hub binding is unavailable." };
+            try {
+              const response = await hub.fetch(new Request("https://internal.invalid/__hub/check", {
+                method: "GET",
+                headers: { Accept: "application/json" }
+              }));
+              const payload = await response.json() as Record<string, unknown>;
+              return { httpStatus: response.status, ...payload };
+            } catch (error) {
+              return {
+                ok: false,
+                error: error instanceof Error ? error.message : "Service health check failed."
+              };
+            }
+          }
+        }),
+        createChiefTask: tool({
+          description: "Create an internal task in this visitor's private Chief of Staff task register. This records and tracks work; it does not claim that another Worker has executed the task.",
+          inputSchema: z.object({
+            title: z.string().trim().min(3).max(160),
+            objective: z.string().trim().min(10).max(1500),
+            ownerRole: z.enum(["research", "verification", "operations", "business", "administration"]),
+            approvalRequired: z.boolean().default(false),
+            notes: z.string().max(2000).default("")
+          }),
+          execute: async ({ title, objective, ownerRole, approvalRequired, notes }) => {
+            const id = crypto.randomUUID();
+            const now = new Date().toISOString();
+            this.sql`
+              INSERT INTO chief_tasks (
+                id, title, objective, owner_role, status, approval_required,
+                notes, created_at, updated_at
+              ) VALUES (
+                ${id}, ${title}, ${objective}, ${ownerRole}, "planned",
+                ${approvalRequired ? 1 : 0}, ${notes}, ${now}, ${now}
+              )
+            `;
+            return { id, status: "planned", recorded: true, executionStarted: false };
+          }
+        }),
+        listChiefTasks: tool({
+          description: "List tasks in this visitor's private Chief of Staff register, newest updates first.",
+          inputSchema: z.object({
+            status: z.enum(["planned", "in_progress", "blocked", "completed", "cancelled"]).optional(),
+            limit: z.number().int().min(1).max(50).default(20)
+          }),
+          execute: async ({ status, limit }) => {
+            const rows = this.sql<{
+              id: string; title: string; objective: string; owner_role: string;
+              status: string; approval_required: number; notes: string;
+              created_at: string; updated_at: string;
+            }>`
+              SELECT * FROM chief_tasks
+              WHERE (${status ?? null} IS NULL OR status = ${status ?? null})
+              ORDER BY updated_at DESC
+              LIMIT ${limit}
+            `;
+            return rows.length ? rows : "No Chief of Staff tasks have been recorded.";
+          }
+        }),
+        updateChiefTask: tool({
+          description: "Update the status or notes of a task in this visitor's private Chief of Staff register. Mark work completed only after it has actually been verified.",
+          inputSchema: z.object({
+            taskId: z.string().min(1).max(100),
+            status: z.enum(["planned", "in_progress", "blocked", "completed", "cancelled"]),
+            notes: z.string().max(2000).optional()
+          }),
+          execute: async ({ taskId, status, notes }) => {
+            const now = new Date().toISOString();
+            this.sql`
+              UPDATE chief_tasks
+              SET status = ${status},
+                  notes = COALESCE(${notes ?? null}, notes),
+                  updated_at = ${now}
+              WHERE id = ${taskId}
+            `;
+            const rows = this.sql<{ id: string; status: string }>`
+              SELECT id, status FROM chief_tasks WHERE id = ${taskId} LIMIT 1
+            `;
+            return rows[0] ?? { updated: false, message: "Task not found." };
+          }
+        }),
+        requestChiefApproval: tool({
+          description: "Record a pending approval request for a consequential action. Recording the request does not grant permission and does not execute the action.",
+          inputSchema: z.object({
+            action: z.string().trim().min(5).max(300),
+            reason: z.string().trim().min(10).max(1500),
+            impact: z.string().trim().min(5).max(1000)
+          }),
+          execute: async ({ action, reason, impact }) => {
+            const id = crypto.randomUUID();
+            const now = new Date().toISOString();
+            this.sql`
+              INSERT INTO chief_approval_requests (
+                id, action, reason, impact, status, user_decision, created_at, updated_at
+              ) VALUES (
+                ${id}, ${action}, ${reason}, ${impact}, "pending", NULL, ${now}, ${now}
+              )
+            `;
+            return { id, status: "pending", approved: false, executed: false };
+          }
+        }),
+        listChiefApprovals: tool({
+          description: "List pending or recent approval requests. A pending request must not be treated as approval.",
+          inputSchema: z.object({
+            status: z.enum(["pending", "approved", "rejected"]).optional(),
+            limit: z.number().int().min(1).max(30).default(10)
+          }),
+          execute: async ({ status, limit }) => {
+            const rows = this.sql<{
+              id: string; action: string; reason: string; impact: string;
+              status: string; user_decision: string | null;
+              created_at: string; updated_at: string;
+            }>`
+              SELECT * FROM chief_approval_requests
+              WHERE (${status ?? null} IS NULL OR status = ${status ?? null})
+              ORDER BY created_at DESC
+              LIMIT ${limit}
+            `;
+            return rows.length ? rows : "No approval requests have been recorded.";
+          }
+        }),
+        resolveChiefApproval: tool({
+          description: "Record the user's explicit approval or rejection for a previously recorded request. Only use after the user clearly confirms or rejects that exact action in the conversation. This records the decision; it does not execute the action.",
+          inputSchema: z.object({
+            requestId: z.string().min(1).max(100),
+            decision: z.enum(["approved", "rejected"]),
+            userConfirmation: z.string().trim().min(10).max(1000)
+          }),
+          execute: async ({ requestId, decision, userConfirmation }) => {
+            const now = new Date().toISOString();
+            this.sql`
+              UPDATE chief_approval_requests
+              SET status = ${decision},
+                  user_decision = ${userConfirmation},
+                  updated_at = ${now}
+              WHERE id = ${requestId} AND status = "pending"
+            `;
+            const rows = this.sql<{ id: string; status: string }>`
+              SELECT id, status FROM chief_approval_requests WHERE id = ${requestId} LIMIT 1
+            `;
+            return rows[0] ?? { updated: false, message: "Approval request not found." };
+          }
+        }),
         saveLongTermMemory: tool({
           description: "Save a non-sensitive fact or preference to this visitor’s private long-term memory only when the user explicitly asks you to remember it. Requires the optional MEM0_API_KEY secret.",
           inputSchema: z.object({ text: z.string().min(3).max(2000) }),
