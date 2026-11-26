@@ -13,7 +13,8 @@
   "services": [
     {
       "binding": "AGENT_STARTER",
-      "service": "agent-starter"
+      "service": "agent-starter",
+      "entrypoint": "WebResearchService"
     }
   ],
   "observability": {
