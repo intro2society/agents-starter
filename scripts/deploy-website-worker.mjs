@@ -97,8 +97,33 @@ const missingBindings = [...expectedBindingNames].filter((name) => !actualBindin
 if (missingBindings.length) {
   throw new Error(`Main website deployment lost existing bindings: ${missingBindings.join(", ")}`);
 }
-if (binding?.entrypoint !== "WebResearchService") {
-  throw new Error("Main website deployment did not retain the WebResearchService RPC binding.");
+if (binding?.service !== "agent-starter" || binding?.entrypoint !== "WebResearchService") {
+  throw new Error("Main website deployment did not retain the expected private research RPC binding.");
+}
+
+const actualBindings = verify.result.bindings || [];
+for (const expected of settings.bindings || []) {
+  if (!["durable_object_namespace", "kv_namespace", "ratelimit", "plain_text"].includes(expected.type)) continue;
+  const actual = actualBindings.find((item) => item.name === expected.name);
+  if (!actual) throw new Error(`Main website deployment lost critical binding ${expected.name}.`);
+  for (const field of ["namespace_id", "text"]) {
+    if (expected[field] !== undefined && actual[field] !== expected[field]) {
+      throw new Error(`Main website deployment changed ${expected.name}.${field}; refusing to report success.`);
+    }
+  }
+  if (expected.type === "ratelimit" && JSON.stringify(actual.simple) !== JSON.stringify(expected.simple)) {
+    throw new Error("Main website deployment changed API_RATE_LIMITER settings.");
+  }
+}
+
+const afterVersions = await api(`/workers/scripts/${scriptName}/versions`);
+const deployedVersion = (afterVersions.result?.items || [])[0];
+if (!deployedVersion?.id) throw new Error("Could not verify the uploaded website Worker version.");
+const deployedVersionResponse = await api(`/workers/scripts/${scriptName}/versions/${deployedVersion.id}`);
+const deployedExports = deployedVersionResponse.result?.resources?.script_runtime?.exports || {};
+const missingExports = Object.keys(exports).filter((name) => !deployedExports[name]);
+if (missingExports.length) {
+  throw new Error(`Main website deployment lost existing exports: ${missingExports.join(", ")}`);
 }
 
 const deployments = await api(`/workers/scripts/${scriptName}/deployments`);
