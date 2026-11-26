@@ -125,3 +125,29 @@ jobs:
             }
             console.log("Main website AI chat returned a response with source URLs:", urls.slice(0, 3));
           ' "$response"
+
+      - name: Smoke test main website image generation with live web references
+        if: steps.credentials.outputs.available == 'true'
+        run: |
+          payload='{"model":"flux","stream":false,"messages":[{"role":"user","content":"Create a clean square editorial icon of a magnifying glass over a small globe, white background, crisp vector-like style."}]}'
+          response="$(curl --fail --silent --show-error --max-time 180 -H 'Content-Type: application/json' --data "$payload" https://theintro2society.org/v1/chat/completions)"
+          node -e '
+            const body = JSON.parse(process.argv[1]);
+            const content = body.choices?.[0]?.message?.content ?? "";
+            const match = content.match(/!\[Image\]\((https:\/\/[^)]+)\)/);
+            if (!match) {
+              console.error("Main website image generation did not return an image URL.");
+              console.error(content.slice(0, 1000));
+              process.exit(1);
+            }
+            fetch(match[1]).then((image) => {
+              if (!image.ok || !image.headers.get("content-type")?.startsWith("image/")) {
+                console.error("Generated image could not be retrieved:", image.status);
+                process.exit(1);
+              }
+              console.log("Main website image generation returned a retrievable image:", image.status, image.headers.get("content-type"));
+            }).catch((error) => {
+              console.error("Generated image retrieval failed:", error);
+              process.exit(1);
+            });
+          ' "$response"
