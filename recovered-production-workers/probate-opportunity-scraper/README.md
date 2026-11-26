@@ -11,11 +11,10 @@ This is not an automated court-record scraper. Future changes must preserve that
 
 ## Shared public-web research
 
-The Worker now exposes a bounded `POST /api/research` endpoint through the existing service hub. It sends the search request to the shared `agent-starter` research service, which uses Brave Search and Browser Run to return a small set of public-web sources and rendered excerpts.
+The Worker now exposes a bounded `POST /api/research` endpoint through the existing service hub. It calls the private `WebResearchService` RPC entrypoint on `agent-starter`, which uses Brave Search and Browser Run to return a small set of public-web sources and rendered excerpts.
 
 Production requirements:
 - `AGENT_STARTER` service binding targeting `agent-starter`
-- `WEB_RESEARCH_API_TOKEN` Worker secret matching the secret on `agent-starter`
 - Existing `DATA` KV binding retained
 
-The browser worksheet stores saved notes locally on the visitor's device. The API does not automatically harvest court dockets. Results are research leads only and must be confirmed with the relevant court and property records.
+The browser worksheet stores saved notes locally on the visitor's device. The private service binding does not expose a public API token to the browser. The API does not automatically harvest court dockets. Results are research leads only and must be confirmed with the relevant court and property records.
