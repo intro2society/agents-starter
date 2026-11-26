@@ -53,6 +53,13 @@ jobs:
           accountId: "6d121e7041ead643e98f3562a9866c0a"
           command: deploy
 
+      - name: Deploy main website Worker with private research RPC
+        if: steps.credentials.outputs.available == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: "6d121e7041ead643e98f3562a9866c0a"
+        run: node scripts/deploy-website-worker.mjs
+
       - name: Deploy internal service hub
         if: steps.credentials.outputs.available == 'true'
         uses: cloudflare/wrangler-action@v3
