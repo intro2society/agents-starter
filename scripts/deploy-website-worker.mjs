@@ -43,8 +43,17 @@ if (!exports || typeof exports !== "object") {
 const bindings = (settings.bindings || [])
   .filter((binding) => !["secret_text", "workflow"].includes(binding.type))
   .map((binding) => {
+    if (binding.type === "ai") {
+      return { name: binding.name, type: "ai" };
+    }
     if (binding.name === "AGENT_STARTER" && binding.type === "service") {
-      return { ...binding, entrypoint: "WebResearchService" };
+      return {
+        name: binding.name,
+        type: binding.type,
+        service: binding.service,
+        environment: binding.environment || "production",
+        entrypoint: "WebResearchService"
+      };
     }
     return binding;
   });
