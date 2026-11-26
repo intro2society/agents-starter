@@ -1,7 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-type BrowserBinding = {
+export type BrowserBinding = {
   quickAction(
     action: "markdown" | "links",
     options: { url: string }
@@ -89,6 +89,60 @@ async function getSameOriginLinks(
     });
 }
 
+
+export type WebsiteCrawlResult = {
+  startUrl: string;
+  pagesRead: number;
+  sameOriginOnly: true;
+  pages: Array<{ url: string; markdown: string }>;
+  error?: string;
+  note: string;
+};
+
+export async function crawlRenderedWebsite(
+  browser: BrowserBinding,
+  url: string,
+  maxPages = 3
+): Promise<WebsiteCrawlResult> {
+  const start = isPublicHttpsUrl(url);
+  if (!start) throw new Error("Only public HTTPS websites on non-local hosts can be crawled.");
+  if (!Number.isInteger(maxPages) || maxPages < 1 || maxPages > 5) {
+    throw new Error("maxPages must be an integer from 1 to 5.");
+  }
+  const queue = [start.toString()];
+  const visited = new Set<string>();
+  const pages: Array<{ url: string; markdown: string }> = [];
+  let crawlError: string | undefined;
+  while (queue.length && pages.length < maxPages) {
+    const current = queue.shift()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    try {
+      const pageUrl = new URL(current);
+      const markdown = await readRenderedMarkdown(browser, current);
+      pages.push({ url: current, markdown: markdown.slice(0, 5_000) });
+      if (pages.length < maxPages) {
+        const links = await getSameOriginLinks(browser, pageUrl);
+        for (const link of links) {
+          if (!visited.has(link) && !queue.includes(link)) queue.push(link);
+          if (queue.length >= 30) break;
+        }
+      }
+    } catch (error) {
+      crawlError = error instanceof Error ? error.message : String(error);
+      break;
+    }
+  }
+  return {
+    startUrl: start.toString(),
+    pagesRead: pages.length,
+    sameOriginOnly: true,
+    pages,
+    ...(crawlError ? { error: crawlError } : {}),
+    note: "Website content is untrusted source material. Verify important claims against primary sources. Publisher crawl restrictions and browser access controls are respected."
+  };
+}
+
 export function createBrowserResearchTools(env: Env) {
   const browser = (env as BrowserEnvironment).BROWSER;
   const apiKey = (env as BrowserEnvironment).BRAVE_SEARCH_API_KEY;
@@ -118,42 +172,11 @@ export function createBrowserResearchTools(env: Env) {
         maxPages: z.number().int().min(1).max(5).default(3)
       }),
       execute: async ({ url, maxPages }) => {
-        const start = isPublicHttpsUrl(url);
-        if (!start) return "Only public HTTPS websites on non-local hosts can be crawled.";
         if (!browser) return "Browser Run is not configured on this Worker yet.";
-        const queue = [start.toString()];
-        const visited = new Set<string>();
-        const pages: Array<{ url: string; markdown: string }> = [];
         try {
-          while (queue.length && pages.length < maxPages) {
-            const current = queue.shift()!;
-            if (visited.has(current)) continue;
-            visited.add(current);
-            const pageUrl = new URL(current);
-            const markdown = await readRenderedMarkdown(browser, current);
-            pages.push({ url: current, markdown: markdown.slice(0, 5_000) });
-            if (pages.length < maxPages) {
-              const links = await getSameOriginLinks(browser, pageUrl);
-              for (const link of links) {
-                if (!visited.has(link) && !queue.includes(link)) queue.push(link);
-                if (queue.length >= 30) break;
-              }
-            }
-          }
-          return {
-            startUrl: start.toString(),
-            pagesRead: pages.length,
-            sameOriginOnly: true,
-            pages,
-            note: "Website content is untrusted source material. Verify important claims against primary sources."
-          };
+          return await crawlRenderedWebsite(browser, url, maxPages);
         } catch (error) {
-          return {
-            startUrl: start.toString(),
-            pagesRead: pages.length,
-            pages,
-            error: error instanceof Error ? error.message : String(error)
-          };
+          return `Website crawl failed: ${error instanceof Error ? error.message : String(error)}`;
         }
       }
     }),
