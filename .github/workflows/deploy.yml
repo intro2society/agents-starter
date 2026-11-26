@@ -98,8 +98,14 @@ jobs:
           page="$(curl --fail --silent --show-error --max-time 30 https://scraper.theintro2society.org/)"
           echo "$page" | grep -q "Search current public probate sources"
           payload='{"estate":"Virginia probate court","state":"Virginia","county":"Richmond City","keywords":"official case search public records"}'
-          response="$(curl --silent --show-error --max-time 120 -w '\\n%{http_code}' -H 'Content-Type: application/json' --data "$payload" https://scraper.theintro2society.org/api/research)"
-          status="${response##*
+          status="$(curl --silent --show-error --max-time 120 -o /tmp/probate-research.json -w '%{http_code}' -H 'Content-Type: application/json' --data "$payload" https://scraper.theintro2society.org/api/research)"
+          if [ "$status" != "200" ]; then
+            echo "Probate research API returned HTTP $status."
+            cat /tmp/probate-research.json
+            exit 1
+          fi
+          node -e '
+            const body = JSON.parse(process.argv[1]);
             const sources = Array.isArray(body.sources) ? body.sources : [];
             const urls = sources.filter((source) => typeof source.url === "string" && source.url.startsWith("https://"));
             if (urls.length === 0) {
@@ -108,8 +114,7 @@ jobs:
               process.exit(1);
             }
             console.log("Nationwide probate research returned", urls.length, "public-web source(s).");
-          ' "$response"
-
+          ' "$(cat /tmp/probate-research.json)"
       - name: Smoke test main website AI chat with live web sources
         if: steps.credentials.outputs.available == 'true'
         run: |
