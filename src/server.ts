@@ -33,6 +33,10 @@ export class WebResearchService extends WorkerEntrypoint<ResearchRpcEnvironment>
     return new Response(null, { status: 404 });
   }
 
+  async ping() {
+    return { ok: true, entrypoint: "WebResearchService" };
+  }
+
   async research(
     query: string,
     count = 4,
@@ -43,14 +47,29 @@ export class WebResearchService extends WorkerEntrypoint<ResearchRpcEnvironment>
       typeof clientKey === "string" && clientKey.length > 0 && clientKey.length <= 128
         ? clientKey
         : "internal";
-    const limiter = this.env.API_RATE_LIMITER;
-    if (limiter) {
-      const { success } = await limiter.limit({ key });
-      if (!success) {
-        throw new Error("Research rate limit exceeded. Please try again shortly.");
+    const startedAt = Date.now();
+    try {
+      const limiter = this.env.API_RATE_LIMITER;
+      if (limiter) {
+        const { success } = await limiter.limit({ key });
+        if (!success) {
+          throw new Error("Research rate limit exceeded. Please try again shortly.");
+        }
       }
+      const result = await performWebResearch(this.env, query, count, readPages);
+      console.log("WebResearchService.research.success", {
+        sourceCount: result.sources.length,
+        elapsedMs: Date.now() - startedAt,
+        clientKeyPrefix: key.split(":")[0]
+      });
+      return result;
+    } catch (error) {
+      const details = error instanceof Error
+        ? { name: error.name, message: error.message }
+        : { name: typeof error, message: String(error) };
+      console.error("WebResearchService.research.failed", details);
+      throw new Error(details.message || "Web research failed without an error message.");
     }
-    return performWebResearch(this.env, query, count, readPages);
   }
 }
 
