@@ -46,14 +46,14 @@ export async function performWebResearch(
   };
   let response = await fetch(searchUrl, { headers: searchHeaders });
   if (response.status === 422 && /["']/u.test(query)) {
-    const fallbackQuery = query.replace(/["']/gu, "").replace(/\\s+/gu, " ").trim();
+    const fallbackQuery = query.replace(/["']/gu, "").replace(/\s+/gu, " ").trim();
     if (fallbackQuery && fallbackQuery !== query) {
       searchUrl.searchParams.set("q", fallbackQuery);
       response = await fetch(searchUrl, { headers: searchHeaders });
     }
   }
   if (!response.ok) {
-    const providerDetail = (await response.text()).replace(/\\s+/gu, " ").slice(0, 160);
+    const providerDetail = (await response.text()).replace(/\s+/gu, " ").slice(0, 160);
     throw new Error(
       `Web search provider returned HTTP ${response.status}${providerDetail ? `: ${providerDetail}` : ""}`
     );
