@@ -47,9 +47,9 @@ if(!estate||estate.length>120||!STATES.some(s=>s[0]===state)||county.length>120|
 if(!env.AGENT_STARTER)return Response.json({error:'Shared public-web research is not configured on this Worker.'},{status:503});
 const query=('"'+estate+'" probate estate records property '+county+' '+state+' '+keywords).trim().slice(0,400);
 try{
-const data=await env.AGENT_STARTER.research(query,5,true,request.headers.get('cf-connecting-ip')||'probate-scraper');
+const visitorIp=request.headers.get('cf-connecting-ip')||'unknown';const data=await env.AGENT_STARTER.research(query,5,true,'probate-scraper:'+visitorIp);
 return Response.json({query:query,sources:Array.isArray(data.sources)?data.sources:[],researchedAt:data.researchedAt,note:data.note},{headers:{'Cache-Control':'no-store'}});
-}catch(error){console.error('Probate public-web research failed:',error);return Response.json({error:'The public-web research request could not be completed.'},{status:502});}
+}catch(error){const message=error instanceof Error?error.message:String(error);console.error('Probate public-web research failed:',message,error instanceof Error?error.stack:'');if(/rate limit/i.test(message))return Response.json({error:'The research request limit was reached. Wait about a minute and try again.',code:'rate_limited'},{status:429,headers:{'Retry-After':'60','Cache-Control':'no-store'}});return Response.json({error:'The public-web research request could not be completed.',code:'research_unavailable'},{status:502,headers:{'Cache-Control':'no-store'}});}
 }
 if(u.pathname==='/health')return Response.json({ok:true,states:STATES.length,workspace:true,webResearchEnabled:!!env.AGENT_STARTER});
 if(u.pathname==='/api/states')return Response.json(STATES.map(s=>({state:s[0],code:s[1],officialCourt:s[2]})));

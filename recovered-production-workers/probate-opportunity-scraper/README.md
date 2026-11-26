@@ -18,3 +18,8 @@ Production requirements:
 - Existing `DATA` KV binding retained
 
 The browser worksheet stores saved notes locally on the visitor's device. The private service binding does not expose a public API token to the browser. The API does not automatically harvest court dockets. Results are research leads only and must be confirmed with the relevant court and property records.
+
+
+## Shared research rate limits
+
+Research calls use a per-application, per-visitor-IP rate-limit key. Website chat/image requests use the `website:` prefix; probate workspace searches use `probate-scraper:`. This keeps one application's traffic from consuming the other application's visitor quota while retaining the configured 20 requests per minute per visitor per application.
