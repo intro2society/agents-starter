@@ -19,7 +19,7 @@ import {
 } from "./memoryWorker";
 import { addMem0Memory, searchMem0Memory } from "./mem0Memory";
 import { fetchProbateDirectory } from "./probateDirectory";
-import { createBrowserResearchTools } from "./webResearch";
+import { crawlRenderedWebsite, createBrowserResearchTools, type BrowserBinding } from "./webResearch";
 import { handleWebResearchApi, performWebResearch } from "./webResearchApi";
 
 type ResearchRpcEnvironment = Env & {
@@ -35,6 +35,38 @@ export class WebResearchService extends WorkerEntrypoint<ResearchRpcEnvironment>
 
   async ping() {
     return { ok: true, entrypoint: "WebResearchService" };
+  }
+
+  async crawl(url: string, maxPages = 3, clientKey = "internal") {
+    const key =
+      typeof clientKey === "string" && clientKey.length > 0 && clientKey.length <= 128
+        ? clientKey
+        : "internal";
+    const startedAt = Date.now();
+    try {
+      const limiter = this.env.API_RATE_LIMITER;
+      if (limiter) {
+        const { success } = await limiter.limit({ key: `crawl:${key}` });
+        if (!success) {
+          throw new Error("Website crawl rate limit exceeded. Please try again shortly.");
+        }
+      }
+      const browser = (this.env as ResearchRpcEnvironment & { BROWSER?: BrowserBinding }).BROWSER;
+      if (!browser) throw new Error("Browser Run is not configured on this Worker.");
+      const result = await crawlRenderedWebsite(browser, url, maxPages);
+      console.log("WebResearchService.crawl.success", {
+        pagesRead: result.pagesRead,
+        elapsedMs: Date.now() - startedAt,
+        clientKeyPrefix: key.split(":")[0]
+      });
+      return result;
+    } catch (error) {
+      const details = error instanceof Error
+        ? { name: error.name, message: error.message }
+        : { name: typeof error, message: String(error) };
+      console.error("WebResearchService.crawl.failed", details);
+      throw new Error(details.message || "Website crawl failed without an error message.");
+    }
   }
 
   async research(
