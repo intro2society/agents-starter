@@ -43,6 +43,7 @@ export async function performWebResearch(
   const response = await fetch(searchUrl, {
     headers: {
       Accept: "application/json",
+      "Cache-Control": "no-cache",
       "X-Subscription-Token": apiEnv.BRAVE_SEARCH_API_KEY
     }
   });
